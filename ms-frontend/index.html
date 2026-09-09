@@ -2,77 +2,20 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portal Académico Instituto</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <title>Portal Académico</title>
 </head>
 <body>
-  <header>
-    <h1>Portal Académico</h1>
-    <div id="userInfo"></div>
-  </header>
-
-  <main>
-    <section id="loginSection" class="card" style="max-width: 400px; margin: 2rem auto;">
-      <h2>Iniciar Sesión</h2>
-      <form id="loginForm">
-        <label>Correo Electrónico:</label>
-        <input type="email" id="email" required placeholder="usuario@correo.com">
-        <label>Contraseña:</label>
-        <input type="password" id="password" required placeholder="******">
-        <button type="submit">Ingresar</button>
-      </form>
-    </section>
-
-    <section id="dashboardSection" class="card" style="display: none;">
-      <h2>Bienvenido al Portal</h2>
-      <p id="welcomeMsg"></p>
-      <hr style="margin: 1rem 0; border-color: #334155;">
-      
-      <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-        <button id="btnMaterias">Mis Materias</button>
-        <button id="btnNotas">Mis Notas</button>
-        <button id="btnSoporte">Soporte PQRS</button>
-        <button id="btnLogout" style="background-color: var(--danger, #ef4444);">Cerrar Sesión</button>
-      </div>
-
-      <div id="contentDisplay"></div>
-    </section>
-  </main>
-
   <script type="module">
     import { AuthModule } from './js/modules/auth.module.js';
 
     document.addEventListener('DOMContentLoaded', () => {
       const user = AuthModule.getUser();
-      if (user) {
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('dashboardSection').style.display = 'block';
-        document.getElementById('welcomeMsg').innerText = `Rol: ${user.rol} | Email: ${user.email}`;
+      if (user && AuthModule.getToken()) {
+        window.location.href = './views/dashboard/dashboard.html';
+      } else {
+        window.location.href = './views/auth/login.html';
       }
     });
-
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-      loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        try {
-          const email = document.getElementById('email').value;
-          const pass = document.getElementById('password').value;
-          const user = await AuthModule.login(email, pass);
-          alert(`Bienvenido ${user.nombre}`);
-          window.location.reload();
-        } catch (err) {
-          alert(err.message);
-        }
-      });
-    }
-
-    const btnLogout = document.getElementById('btnLogout');
-    if (btnLogout) {
-      btnLogout.addEventListener('click', () => AuthModule.logout());
-    }
   </script>
-  <script type="module" src="js/main.js"></script>
 </body>
 </html>

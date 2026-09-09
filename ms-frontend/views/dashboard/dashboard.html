@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Unicomfacauca — Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body>
+
+<div id="app-shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div>
+      <div class="sb-logo">
+        <div class="badge"><i class="fa-solid fa-graduation-cap"></i></div>
+        <div>
+          <h1>UNICOMFACAUCA</h1>
+          <p id="sb-subtitle">Portal Académico</p>
+        </div>
+      </div>
+
+      <div class="sb-user">
+        <div class="avatar" id="sb-avatar">U</div>
+        <div>
+          <div class="name" id="sb-name">Usuario</div>
+          <div class="role" id="sb-role">Cargando...</div>
+        </div>
+      </div>
+
+      <nav class="sb-menu" id="sb-menu"></nav>
+    </div>
+
+    <button class="sb-logout" id="btnLogout">
+      <i class="fa-solid fa-arrow-right-from-bracket"></i> Cerrar sesión
+    </button>
+  </aside>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="content">
+    <div class="topbar">
+      <div>
+        <h1 id="page-title">Bienvenido 👋</h1>
+        <p id="page-sub">Cargando información del sistema...</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn"><i class="fa-regular fa-bell"></i></button>
+        <div class="pill" id="current-date"></div>
+      </div>
+    </div>
+
+    <div id="page-container"></div>
+  </main>
+</div>
+
+<script type="module">
+  import { AuthModule } from '../../js/modules/auth.module.js';
+  import { SoporteModule } from '../../js/modules/soporte.module.js';
+  import { UsersModule } from '../../js/modules/users.module.js';
+
+  const CONFIG_MENUS = {
+    ESTUDIANTE: [
+      { id: 'dashboard', label: 'Panel Principal', icon: 'fa-gauge-high' },
+      { id: 'materias', label: 'Mis Materias', icon: 'fa-book' },
+      { id: 'calificaciones', label: 'Calificaciones', icon: 'fa-clipboard-list' },
+      { id: 'pqrs', label: 'Gestión PQRS / Tickets', icon: 'fa-life-ring' }
+    ],
+    PROFESOR: [
+      { id: 'dashboard', label: 'Panel Docente', icon: 'fa-gauge-high' },
+      { id: 'cursos', label: 'Mis Cursos', icon: 'fa-book' },
+      { id: 'calificar', label: 'Cargar Notas', icon: 'fa-clipboard-list' },
+      { id: 'pqrs', label: 'Soporte Técnico', icon: 'fa-life-ring' }
+    ],
+    ADMIN: [
+      { id: 'dashboard', label: 'Panel General', icon: 'fa-gauge-high' },
+      { id: 'usuarios', label: 'Gestión Usuarios', icon: 'fa-users' },
+      { id: 'materias', label: 'Gestión Asignaturas', icon: 'fa-book' },
+      { id: 'pqrs', label: 'Administrar Tickets PQRS', icon: 'fa-life-ring' }
+    ]
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const user = AuthModule.getUser();
+    if (!user || !AuthModule.getToken()) {
+      window.location.href = '../auth/login.html';
+      return;
+    }
+
+    // Configurar fecha
+    document.getElementById('current-date').innerText = new Date().toLocaleDateString('es-CO', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // Cargar perfil del usuario en la barra lateral
+    document.getElementById('sb-name').innerText = user.nombre || user.email;
+    document.getElementById('sb-avatar').innerText = (user.nombre || user.email).charAt(0).toUpperCase();
+    document.getElementById('sb-role').innerText = `Rol: ${user.rol}`;
+
+    // Generar menú filtrado por rol
+    renderMenu(user.rol);
+    document.getElementById('btnLogout').addEventListener('click', () => AuthModule.logout());
+
+    // Cargar vista inicial
+    navegarA('dashboard', user);
+  });
+
+  function renderMenu(rol) {
+    const nav = document.getElementById('sb-menu');
+    const items = CONFIG_MENUS[rol] || CONFIG_MENUS.ESTUDIANTE;
+
+    nav.innerHTML = items.map(m => `
+      <a data-page="${m.id}" class="nav-item">
+        <i class="fa-solid ${m.icon}"></i> ${m.label}
+      </a>
+    `).join('');
+
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget.getAttribute('data-page');
+        const user = AuthModule.getUser();
+        navegarA(target, user);
+      });
+    });
+  }
+
+  async function navegarA(vistaId, user) {
+    const container = document.getElementById('page-container');
+    const title = document.getElementById('page-title');
+    const sub = document.getElementById('page-sub');
+
+    document.querySelectorAll('.nav-item').forEach(el => {
+      el.classList.toggle('active', el.getAttribute('data-page') === vistaId);
+    });
+
+    if (vistaId === 'dashboard') {
+      title.innerText = `Bienvenido/a, ${user.nombre || 'Usuario'}`;
+      sub.innerText = `Panel de Control — Rol: ${user.rol}`;
+      container.innerHTML = `
+        <div class="alert green">
+          <div class="icon-circle"><i class="fa-solid fa-circle-check"></i></div>
+          <div>
+            <h3>Sesión Activa</h3>
+            <p>Has ingresado correctamente con el rol de <strong>${user.rol}</strong>.</p>
+          </div>
+        </div>
+      `;
+    } else if (vistaId === 'usuarios') {
+      title.innerText = 'Gestión Global de Usuarios';
+      sub.innerText = 'Módulo CRUD conectado al microservicio ms-auth';
+      await renderModuloUsuarios(container);
+    } else if (vistaId === 'pqrs') {
+      title.innerText = 'Gestión de Tickets y PQRS';
+      sub.innerText = 'Módulo CRUD conectado a microservicio';
+      await renderModuloPqrs(container, user);
+    } else {
+      title.innerText = 'Módulo en desarrollo';
+      sub.innerText = `Vista: ${vistaId}`;
+      container.innerHTML = `<div class="card"><p>Módulo para el rol ${user.rol} en construcción.</p></div>`;
+    }
+  }
+
+  async function renderModuloUsuarios(container) {
+    container.innerHTML = '<p>Cargando módulo de usuarios...</p>';
+    try {
+      const response = await fetch('../admin/usuarios.html');
+      if (!response.ok) throw new Error('No se pudo encontrar la vista de usuarios');
+      
+      const html = await response.text();
+      container.innerHTML = html;
+
+      // Reactivar scripts internos de usuarios.html
+      const scripts = container.querySelectorAll('script');
+      scripts.forEach(oldScript => {
+        const newScript = document.createElement('script');
+        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+        newScript.textContent = oldScript.textContent;
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      });
+    } catch (err) {
+      container.innerHTML = `<div class="card"><p style="color:var(--red)">Error al cargar usuarios: ${err.message}</p></div>`;
+    }
+  }
+
+  async function renderModuloPqrs(container, user) {
+    container.innerHTML = '<p>Cargando registros...</p>';
+    try {
+      const tickets = await SoporteModule.getPqrsUsuario(user.id);
+      
+      let html = `
+        <div class="card" style="margin-bottom: 20px;">
+          <h3>Radicar Nueva Solicitud</h3>
+          <form id="formPqrs">
+            <input type="hidden" id="pqrs-id">
+            <div class="field">
+              <label>Tipo</label>
+              <select id="pqrs-tipo" required>
+                <option value="Petición">Petición</option>
+                <option value="Queja">Queja</option>
+                <option value="Reclamo">Reclamo</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Asunto</label>
+              <input type="text" id="pqrs-asunto" required placeholder="Escribe el asunto">
+            </div>
+            <div class="field">
+              <label>Descripción</label>
+              <input type="text" id="pqrs-desc" required placeholder="Detalle de la solicitud">
+            </div>
+            <button type="submit" class="btn-primary" style="width: auto; padding: 10px 20px;">Guardar Ticket</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h3>Listado de Tickets</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Tipo</th><th>Asunto</th><th>Descripción</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      if (tickets.length === 0) {
+        html += '<tr><td colspan="5">No hay tickets registrados.</td></tr>';
+      } else {
+        tickets.forEach(t => {
+          html += `
+            <tr>
+              <td>${t.id}</td>
+              <td>${t.tipo}</td>
+              <td><strong>${t.asunto}</strong></td>
+              <td>${t.descripcion}</td>
+              <td>
+                <button class="btn-edit btn-navy" data-id="${t.id}" data-tipo="${t.tipo}" data-asunto="${t.asunto}" data-desc="${t.descripcion}">Editar</button>
+                <button class="btn-del btn-navy" data-id="${t.id}" style="background:var(--red);">Eliminar</button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      html += '</tbody></table></div>';
+      container.innerHTML = html;
+
+      // Listeners CRUD
+      document.getElementById('formPqrs').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('pqrs-id').value;
+        const tipo = document.getElementById('pqrs-tipo').value;
+        const asunto = document.getElementById('pqrs-asunto').value;
+        const descripcion = document.getElementById('pqrs-desc').value;
+
+        if (id) {
+          await SoporteModule.actualizarPqrs(id, { tipo, asunto, descripcion });
+        } else {
+          await SoporteModule.enviarPqrs(tipo, asunto, descripcion, user.id);
+        }
+        renderModuloPqrs(container, user);
+      });
+
+      document.querySelectorAll('.btn-edit').forEach(b => {
+        b.addEventListener('click', (e) => {
+          const ds = e.currentTarget.dataset;
+          document.getElementById('pqrs-id').value = ds.id;
+          document.getElementById('pqrs-tipo').value = ds.tipo;
+          document.getElementById('pqrs-asunto').value = ds.asunto;
+          document.getElementById('pqrs-desc').value = ds.desc;
+        });
+      });
+
+      document.querySelectorAll('.btn-del').forEach(b => {
+        b.addEventListener('click', async (e) => {
+          const id = e.currentTarget.dataset.id;
+          if (confirm(`¿Desea eliminar el ticket #${id}?`)) {
+            await SoporteModule.eliminarPqrs(id);
+            renderModuloPqrs(container, user);
+          }
+        });
+      });
+
+    } catch (err) {
+      container.innerHTML = '<div class="card"><p style="color:var(--red)">Error al consultar las PQRS.</p></div>';
+    }
+  }
+</script>
+</body>
+</html>

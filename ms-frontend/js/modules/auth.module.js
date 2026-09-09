@@ -1,41 +1,37 @@
-/**
- * @file Auth Module - Frontend
- * @description Módulo de autenticación y gestión de tokens de sesión JWT local.
- * @iso ISO/IEC 27001 - Gestión de Sesión Segura
- */
-
 export const AuthModule = {
   /**
-   * Realiza la petición de autenticación contra el API Gateway
+   * Autentica al usuario contra la API pasando correo, contraseña y el rol activo seleccionado
    */
-  async login(email, password) {
-    const response = await fetch('/api/auth/login', {
+  async login(email, password, rolSeleccionado) {
+    const res = await fetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      headers: { 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify({ 
+        email, 
+        password, 
+        rol: rolSeleccionado 
+      })
     });
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Credenciales inválidas');
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      // Retorna el mensaje de error procesado por el backend o un fallback
+      throw new Error(data.error || data.message || 'Error al iniciar sesión');
     }
 
+    // Guarda el Token JWT y los datos de la sesión en el almacenamiento local
+    const usuario = data.usuario || data.user;
     localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    return data.user;
+    localStorage.setItem('user', JSON.stringify(usuario));
+
+    return usuario;
   },
 
   /**
-   * Cierra la sesión activa borrando credenciales locales
-   */
-  logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.reload();
-  },
-
-  /**
-   * Obtiene el usuario almacenado en la sesión
+   * Obtiene la información del usuario actual desde localStorage
    */
   getUser() {
     const user = localStorage.getItem('user');
@@ -43,9 +39,18 @@ export const AuthModule = {
   },
 
   /**
-   * Obtiene el token para incluir en los Headers HTTP
+   * Obtiene el Token JWT desde localStorage
    */
   getToken() {
     return localStorage.getItem('token');
+  },
+
+  /**
+   * Cierra la sesión activa y redirige a la vista de login
+   */
+  logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '../auth/login.html';
   }
 };

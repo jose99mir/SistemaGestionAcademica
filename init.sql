@@ -17,7 +17,24 @@ CREATE TABLE IF NOT EXISTS usuarios (
   creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
--- 2. TABLA: programas
+-- 2. TABLA: roles
+CREATE TABLE IF NOT EXISTS roles (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(30) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+
+-- 3. TABLA: usuario_rol
+CREATE TABLE IF NOT EXISTS usuario_rol (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id INT NOT NULL,
+  rol_id INT NOT NULL,
+  activo TINYINT(1) DEFAULT 1,
+  UNIQUE KEY uq_usuario_rol (usuario_id, rol_id),
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+  FOREIGN KEY (rol_id) REFERENCES roles(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 4. TABLA: programas
 CREATE TABLE IF NOT EXISTS programas (
   id INT AUTO_INCREMENT PRIMARY KEY,
   codigo VARCHAR(20) NOT NULL UNIQUE,
@@ -25,14 +42,14 @@ CREATE TABLE IF NOT EXISTS programas (
   facultad VARCHAR(100) NOT NULL
 ) ENGINE=InnoDB;
 
--- 3. TABLA: periodos_academicos
+-- 5. TABLA: periodos_academicos
 CREATE TABLE IF NOT EXISTS periodos_academicos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nombre VARCHAR(20) NOT NULL,
   activo TINYINT(1) DEFAULT 1
 ) ENGINE=InnoDB;
 
--- 4. TABLA: materias
+-- 6. TABLA: materias
 CREATE TABLE IF NOT EXISTS materias (
   id INT AUTO_INCREMENT PRIMARY KEY,
   codigo VARCHAR(20) NOT NULL UNIQUE,
@@ -44,7 +61,7 @@ CREATE TABLE IF NOT EXISTS materias (
   FOREIGN KEY (docente_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
--- 5. TABLA: matriculas
+-- 7. TABLA: matriculas
 CREATE TABLE IF NOT EXISTS matriculas (
   id INT AUTO_INCREMENT PRIMARY KEY,
   estudiante_id INT NOT NULL,
@@ -57,7 +74,7 @@ CREATE TABLE IF NOT EXISTS matriculas (
   FOREIGN KEY (periodo_id) REFERENCES periodos_academicos(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 6. TABLA: notas
+-- 8. TABLA: notas
 CREATE TABLE IF NOT EXISTS notas (
   id INT AUTO_INCREMENT PRIMARY KEY,
   matricula_id INT NOT NULL UNIQUE,
@@ -69,7 +86,7 @@ CREATE TABLE IF NOT EXISTS notas (
   FOREIGN KEY (matricula_id) REFERENCES matriculas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 7. TABLA: evaluaciones_docente
+-- 9. TABLA: evaluaciones_docente
 CREATE TABLE IF NOT EXISTS evaluaciones_docente (
   id INT AUTO_INCREMENT PRIMARY KEY,
   estudiante_id INT NOT NULL,
@@ -81,7 +98,7 @@ CREATE TABLE IF NOT EXISTS evaluaciones_docente (
   FOREIGN KEY (docente_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 8. TABLA: pqrs
+-- 10. TABLA: pqrs
 CREATE TABLE IF NOT EXISTS pqrs (
   id INT AUTO_INCREMENT PRIMARY KEY,
   usuario_id INT NOT NULL,
@@ -98,13 +115,28 @@ CREATE TABLE IF NOT EXISTS pqrs (
 -- POBLADO DE DATOS (Contraseña para todos: 123456)
 -- ========================================================
 
--- Insertar Usuarios con IDs correctos (1 al 4)
+-- Insertar Usuarios con IDs correctos (1 al 4) y hashes originales
 INSERT INTO usuarios (id, nombre, email, password_hash, rol, activo) VALUES
 (1, 'Administrador General', 'admin@instituto.edu.co', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L6532mE18m14vmu', 'ADMIN', 1),
 (2, 'Dr. Roberto Gómez', 'roberto.gomez@instituto.edu.co', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L6532mE18m14vmu', 'DOCENTE', 1),
 (3, 'Carlos Daniel Martínez', 'carlos.estudiante@instituto.edu.co', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L6532mE18m14vmu', 'ESTUDIANTE', 1),
 (4, 'Laura Sofia Rios', 'laura.estudiante@instituto.edu.co', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L6532mE18m14vmu', 'ESTUDIANTE', 1)
 ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash);
+
+-- Roles
+INSERT INTO roles (id, nombre) VALUES
+(1, 'ADMIN'),
+(2, 'DOCENTE'),
+(3, 'ESTUDIANTE')
+ON DUPLICATE KEY UPDATE nombre = VALUES(nombre);
+
+-- Relación Usuario - Rol
+INSERT INTO usuario_rol (id, usuario_id, rol_id, activo) VALUES
+(1, 1, 1, 1), -- Admin
+(2, 2, 2, 1), -- Roberto (Docente)
+(3, 3, 3, 1), -- Carlos (Estudiante)
+(4, 4, 3, 1)  -- Laura (Estudiante)
+ON DUPLICATE KEY UPDATE activo = VALUES(activo);
 
 -- Programas
 INSERT INTO programas (id, codigo, nombre, facultad) VALUES

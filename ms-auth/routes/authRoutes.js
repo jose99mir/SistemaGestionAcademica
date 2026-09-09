@@ -1,11 +1,21 @@
+/**
+ * @file Auth Routes
+ * @location ms-auth/routes/authRoutes.js
+ * @description Mapea los endpoints de autenticación y gestión de usuarios a AuthController.
+ */
+
 const express = require("express");
 const router = express.Router();
 const AuthController = require("../controllers/authController");
 
-// Captura login en cualquier variación de subruta que envíe el Gateway
-router.post(["/login", "/auth/login", "/api/auth/login"], (req, res) => AuthController.login(req, res));
+// Rutas de autenticación
+router.post("/login", AuthController.login);
+router.get("/verify", AuthController.verify);
 
-// Captura verify en cualquier variación
-router.get(["/verify", "/auth/verify", "/api/auth/verify"], (req, res) => AuthController.verify(req, res));
+// Rutas CRUD de usuarios
+router.get("/users", AuthController.list);
+router.post("/users", AuthController.create);
+router.put("/users/:id", AuthController.update);
+router.delete("/users/:id", AuthController.delete);
 
 module.exports = router;

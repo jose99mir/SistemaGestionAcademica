@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Unicomfacauca — Iniciar Sesión</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="badge"><i class="fa-solid fa-graduation-cap"></i></div>
+      <div>
+        <h1>UNICOMFACAUCA</h1>
+        <p>Portal Académico</p>
+      </div>
+    </div>
+
+    <h2>Iniciar sesión</h2>
+    <p class="sub">Ingresa con tus credenciales institucionales.</p>
+
+    <!-- Contenedor dinámico de alertas de error -->
+    <div id="error-message" style="display:none; color: #991b1b; background: #fee2e2; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; border: 1px solid #fca5a5;"></div>
+
+    <!-- Selección de rol mediante Pestañas (Roles mapeados a la BD) -->
+    <div class="role-tabs">
+      <button id="tab-estudiante" class="active" type="button" onclick="setRole('ESTUDIANTE')">Estudiante</button>
+      <button id="tab-profesor" type="button" onclick="setRole('DOCENTE')">Profesor</button>
+      <button id="tab-admin" type="button" onclick="setRole('ADMIN')">Administrador</button>
+    </div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="login-email">Correo institucional</label>
+        <input id="login-email" type="email" required placeholder="usuario@instituto.edu.co">
+      </div>
+      <div class="field">
+        <label for="login-password">Contraseña</label>
+        <input id="login-password" type="password" required placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn-primary">Ingresar</button>
+    </form>
+
+    <div class="demo-note" id="role-hint">Selecciona tu rol para ingresar al portal correspondiente.</div>
+  </div>
+</div>
+
+<script type="module">
+  import { AuthModule } from '../../js/modules/auth.module.js';
+
+  // Rol por defecto coincidente con la BD
+  let selectedRol = 'ESTUDIANTE';
+
+  // Función global para actualizar la selección de rol
+  window.setRole = function(rol) {
+    selectedRol = rol;
+    document.getElementById('error-message').style.display = 'none';
+    
+    document.getElementById('tab-estudiante').classList.toggle('active', rol === 'ESTUDIANTE');
+    document.getElementById('tab-profesor').classList.toggle('active', rol === 'DOCENTE');
+    document.getElementById('tab-admin').classList.toggle('active', rol === 'ADMIN');
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Si existe una sesión activa previa, redirige directamente al dashboard
+    if (AuthModule.getUser() && AuthModule.getToken()) {
+      window.location.href = '../dashboard/dashboard.html';
+      return;
+    }
+
+    const form = document.getElementById('loginForm');
+    const errorContainer = document.getElementById('error-message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorContainer.style.display = 'none';
+
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      try {
+        // Pasa las credenciales junto con el rol seleccionado exacto ('ESTUDIANTE', 'DOCENTE', 'ADMIN')
+        await AuthModule.login(email, password, selectedRol);
+        window.location.href = '../dashboard/dashboard.html';
+      } catch (err) {
+        errorContainer.innerText = err.message;
+        errorContainer.style.display = 'block';
+      }
+    });
+  });
+</script>
+</body>
+</html>
