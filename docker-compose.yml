@@ -1,0 +1,143 @@
+services:
+  # 1. Base de Datos MySQL Unificada
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: portal_academico
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - notas_net
+
+  # 2. Microservicio de Autenticación
+  ms-auth:
+    build: ./ms-auth
+    container_name: ms-auth
+    restart: always
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=admin
+      - DB_PASSWORD=admin123
+      - DB_NAME=portal_academico
+      - PORT=3006
+      - JWT_SECRET=dev_secret_change_me
+    depends_on:
+      - mysql
+    networks:
+      - notas_net
+
+  # 3. Microservicio de Usuarios
+  ms-usuarios:
+    build: ./ms-usuarios
+    container_name: ms-usuarios
+    restart: always
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=admin
+      - DB_PASSWORD=admin123
+      - DB_NAME=portal_academico
+      - PORT=3001
+    depends_on:
+      - mysql
+    networks:
+      - notas_net
+
+  # 4. Microservicio Académico
+  ms-academico:
+    build: ./ms-academico
+    container_name: ms-academico
+    restart: always
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=admin
+      - DB_PASSWORD=admin123
+      - DB_NAME=portal_academico
+      - PORT=3002
+    depends_on:
+      - mysql
+    networks:
+      - notas_net
+
+  # 5. Microservicio de Notas
+  ms-notas:
+    build: ./ms-notas
+    container_name: ms-notas
+    restart: always
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=admin
+      - DB_PASSWORD=admin123
+      - DB_NAME=portal_academico
+      - PORT=3005
+    depends_on:
+      - mysql
+    networks:
+      - notas_net
+
+  # 6. Microservicio de Soporte
+  ms-soporte:
+    build: ./ms-soporte
+    container_name: ms-soporte
+    restart: always
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=admin
+      - DB_PASSWORD=admin123
+      - DB_NAME=portal_academico
+      - PORT=3007
+    depends_on:
+      - mysql
+    networks:
+      - notas_net
+
+  # 7. API Gateway
+  ms-gateway:
+    build: ./ms-gateway
+    container_name: ms-gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - MS_AUTH_URL=http://ms-auth:3006
+      - MS_USUARIOS_URL=http://ms-usuarios:3001
+      - MS_ACADEMICO_URL=http://ms-academico:3002
+      - MS_NOTAS_URL=http://ms-notas:3005
+      - MS_SOPORTE_URL=http://ms-soporte:3007
+    depends_on:
+      - ms-auth
+      - ms-usuarios
+      - ms-academico
+      - ms-notas
+      - ms-soporte
+    networks:
+      - notas_net
+
+  # 8. Servidor Frontend (Nginx)
+  ms-frontend:
+    build: ./ms-frontend
+    container_name: ms-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - ms-gateway
+    networks:
+      - notas_net
+
+# Declaración explícita de volúmenes con nombre
+volumes:
+  mysql_data:
+    name: portal_notas_mysql_data
+
+# Declaración de la red compartida
+networks:
+  notas_net:
+    driver: bridge
