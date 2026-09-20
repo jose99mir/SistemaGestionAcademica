@@ -1,28 +1,81 @@
+/**
+ * @file Auth Module
+ * @location ms-frontend/js/modules/auth.module.js
+ */
+
 export const AuthModule = {
-  /**
-   * Autentica al usuario contra la API pasando correo, contraseña y el rol activo seleccionado
-   */
+  selectedRol: 'ESTUDIANTE',
+
+  initLoginPage() {
+    if (this.getUser() && this.getToken()) {
+      window.location.href = '../dashboard/dashboard.html';
+      return;
+    }
+
+    const form = document.getElementById('loginForm');
+    const roleButtons = document.querySelectorAll('.role-btn');
+
+    if (!form) return;
+
+    roleButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const targetRole = e.currentTarget.getAttribute('data-role');
+        this.setRole(targetRole);
+      });
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.handleLoginSubmit();
+    });
+  },
+
+  setRole(rol) {
+    this.selectedRol = rol;
+    const errorContainer = document.getElementById('error-message');
+    if (errorContainer) {
+      errorContainer.classList.remove('show');
+    }
+
+    document.querySelectorAll('.role-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-role') === rol);
+    });
+  },
+
+  async handleLoginSubmit() {
+    const errorContainer = document.getElementById('error-message');
+    const emailInput = document.getElementById('login-email');
+    const passwordInput = document.getElementById('login-password');
+
+    if (errorContainer) errorContainer.classList.remove('show');
+
+    const email = emailInput ? emailInput.value.trim() : '';
+    const password = passwordInput ? passwordInput.value : '';
+
+    try {
+      await this.login(email, password, this.selectedRol);
+      window.location.href = '../dashboard/dashboard.html';
+    } catch (err) {
+      if (errorContainer) {
+        errorContainer.innerText = err.message;
+        errorContainer.classList.add('show');
+      }
+    }
+  },
+
   async login(email, password, rolSeleccionado) {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json' 
-      },
-      body: JSON.stringify({ 
-        email, 
-        password, 
-        rol: rolSeleccionado 
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, rol: rolSeleccionado })
     });
 
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      // Retorna el mensaje de error procesado por el backend o un fallback
-      throw new Error(data.error || data.message || 'Error al iniciar sesión');
+      throw new Error(data.error || data.message || 'Credenciales inválidas');
     }
 
-    // Guarda el Token JWT y los datos de la sesión en el almacenamiento local
     const usuario = data.usuario || data.user;
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(usuario));
@@ -30,24 +83,15 @@ export const AuthModule = {
     return usuario;
   },
 
-  /**
-   * Obtiene la información del usuario actual desde localStorage
-   */
   getUser() {
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   },
 
-  /**
-   * Obtiene el Token JWT desde localStorage
-   */
   getToken() {
     return localStorage.getItem('token');
   },
 
-  /**
-   * Cierra la sesión activa y redirige a la vista de login
-   */
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');

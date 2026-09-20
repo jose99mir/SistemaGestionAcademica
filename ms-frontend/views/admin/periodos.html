@@ -1,0 +1,61 @@
+<div class="crud-card">
+  <div class="header-action">
+    <div>
+      <h2>Gestión de Periodos Académicos</h2>
+      <p class="subtitle">Administración de periodos lectivos del sistema.</p>
+    </div>
+    <button type="button" id="btn-open-period-create" class="btn-primary">
+      <i class="fa-solid fa-calendar-plus"></i> Nuevo Periodo
+    </button>
+  </div>
+
+  <div id="main-period-alert" class="alert-box"></div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="periodos-table-body">
+      <tr><td colspan="4" class="text-center">Cargando periodos...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal Principal CRUD Periodos -->
+<div id="periodModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 id="periodModalTitle">Nuevo Periodo Académico</h3>
+    
+    <div id="period-modal-alert" class="alert-box"></div>
+
+    <form id="periodForm">
+      <input type="hidden" id="periodId">
+      
+      <div class="field">
+        <label for="periodName">Nombre del Periodo</label>
+        <input type="text" id="periodName" required placeholder="Ej. 2026-1" maxlength="20" class="input-full">
+      </div>
+
+      <div class="field hidden-element margin-b-16" id="periodStatusContainer">
+        <label class="checkbox-label">
+          <input type="checkbox" id="periodActive" checked> Estado Activo
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="btn-close-period-modal" class="btn-secondary">Cancelar</button>
+        <button type="submit" class="btn-primary padding-btn">Guardar Periodo</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { PeriodosModule } from '../../js/modules/periodos.module.js';
+  PeriodosModule.init();
+</script>
