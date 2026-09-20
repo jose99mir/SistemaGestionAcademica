@@ -260,3 +260,49 @@ async function cargarSoporte(user) {
     display.innerHTML = `<p style="color: #ef4444;">Error al cargar el módulo de soporte.</p>`;
   }
 }
+
+async function navigateTo(view) {
+  const contentArea = document.getElementById('content'); // O el ID de tu contenedor principal
+
+  switch (view) {
+    case 'usuarios':
+      // Carga la vista de usuarios
+      loadHtmlView('../../views/admin/usuarios.html');
+      break;
+
+    case 'programas':
+      //  Carga la vista de programas
+      await loadHtmlView('../../views/admin/programas.html');
+      break;
+
+    default:
+      loadHtmlView('../../views/dashboard/dashboard.html');
+      break;
+  }
+}
+
+// Función auxiliar para inyectar el HTML
+async function loadHtmlView(url) {
+  try {
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
+    if (!res.ok) throw new Error('Error al cargar la vista');
+    
+    const html = await res.text();
+    const contentArea = document.getElementById('content'); // Reemplaza por tu contenedor
+    contentArea.innerHTML = html;
+
+    // Ejecutar los scripts <script type="module"> inyectados dinámicamente
+    const scripts = contentArea.querySelectorAll('script');
+    scripts.forEach(oldScript => {
+      const newScript = document.createElement('script');
+      Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+      newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+      oldScript.parentNode.replaceChild(newScript, oldScript);
+    });
+
+  } catch (error) {
+    console.error("Error al cargar la vista:", error);
+  }
+}

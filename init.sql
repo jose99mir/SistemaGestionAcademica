@@ -39,7 +39,8 @@ CREATE TABLE IF NOT EXISTS programas (
   id INT AUTO_INCREMENT PRIMARY KEY,
   codigo VARCHAR(20) NOT NULL UNIQUE,
   nombre VARCHAR(100) NOT NULL,
-  facultad VARCHAR(100) NOT NULL
+  facultad VARCHAR(100) NOT NULL,
+  activo TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB;
 
 -- 5. TABLA: periodos_academicos

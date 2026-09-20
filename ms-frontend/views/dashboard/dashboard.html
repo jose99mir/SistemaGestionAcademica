@@ -57,7 +57,6 @@
 <script type="module">
   import { AuthModule } from '../../js/modules/auth.module.js';
   import { SoporteModule } from '../../js/modules/soporte.module.js';
-  import { UsersModule } from '../../js/modules/users.module.js';
 
   const CONFIG_MENUS = {
     ESTUDIANTE: [
@@ -75,6 +74,7 @@
     ADMIN: [
       { id: 'dashboard', label: 'Panel General', icon: 'fa-gauge-high' },
       { id: 'usuarios', label: 'Gestión Usuarios', icon: 'fa-users' },
+      { id: 'programas', label: 'Gestión Programas', icon: 'fa-graduation-cap' },
       { id: 'materias', label: 'Gestión Asignaturas', icon: 'fa-book' },
       { id: 'pqrs', label: 'Administrar Tickets PQRS', icon: 'fa-life-ring' }
     ]
@@ -148,7 +148,14 @@
     } else if (vistaId === 'usuarios') {
       title.innerText = 'Gestión Global de Usuarios';
       sub.innerText = 'Módulo CRUD conectado al microservicio ms-auth';
-      await renderModuloUsuarios(container);
+      await renderModuloHtml(container, '../admin/usuarios.html', 'usuarios');
+
+    } else if (vistaId === 'programas') {
+      title.innerText = 'Gestión de Programas Académicos';
+      sub.innerText = 'Módulo CRUD conectado al microservicio ms-academico'; 
+      await renderModuloHtml(container, '../admin/programas.html', 'programas');
+
+
     } else if (vistaId === 'pqrs') {
       title.innerText = 'Gestión de Tickets y PQRS';
       sub.innerText = 'Módulo CRUD conectado a microservicio';
@@ -160,16 +167,17 @@
     }
   }
 
-  async function renderModuloUsuarios(container) {
-    container.innerHTML = '<p>Cargando módulo de usuarios...</p>';
+  // Función genérica para renderizar e inyectar HTMLs dinámicos (usuarios, programas, etc.)
+  async function renderModuloHtml(container, urlVista, nombreModulo) {
+    container.innerHTML = `<p>Cargando módulo de ${nombreModulo}...</p>`;
     try {
-      const response = await fetch('../admin/usuarios.html');
-      if (!response.ok) throw new Error('No se pudo encontrar la vista de usuarios');
+      const response = await fetch(urlVista);
+      if (!response.ok) throw new Error(`No se pudo encontrar la vista (${urlVista})`);
       
       const html = await response.text();
       container.innerHTML = html;
 
-      // Reactivar scripts internos de usuarios.html
+      // Re-ejecutar scripts internos de la vista cargada
       const scripts = container.querySelectorAll('script');
       scripts.forEach(oldScript => {
         const newScript = document.createElement('script');
@@ -178,7 +186,7 @@
         oldScript.parentNode.replaceChild(newScript, oldScript);
       });
     } catch (err) {
-      container.innerHTML = `<div class="card"><p style="color:var(--red)">Error al cargar usuarios: ${err.message}</p></div>`;
+      container.innerHTML = `<div class="card"><p style="color:var(--red)">Error al cargar ${nombreModulo}: ${err.message}</p></div>`;
     }
   }
 
@@ -245,7 +253,6 @@
       html += '</tbody></table></div>';
       container.innerHTML = html;
 
-      // Listeners CRUD
       document.getElementById('formPqrs').addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('pqrs-id').value;
