@@ -1,21 +1,21 @@
 <div class="card">
-  <!-- Cabecera adaptable -->
-  <div class="card-header-flex">
+  <!-- Cabecera idéntica a Programas -->
+  <div class="header-action">
     <div>
       <h3 style="margin: 0;">Gestión Global de Usuarios</h3>
-      <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 0.9rem;">
+      <p style="margin: 5px 0 0 0; color: var(--muted); font-size: 0.9rem;">
         Administra accesos, roles y contraseñas de los usuarios.
       </p>
     </div>
-    <button id="btn-open-modal" class="btn-primary">
+    <button id="btn-open-modal" class="btn-navy" style="width: auto;">
       <i class="fa-solid fa-user-plus"></i> Nuevo Usuario
     </button>
   </div>
 
-  <!-- Alertas del módulo -->
+  <!-- Alerta del módulo -->
   <div id="main-user-alert" class="alert-box" style="display: none;"></div>
 
-  <!-- Contenedor con scroll horizontal para la tabla -->
+  <!-- Contenedor adaptable para evitar desbordamientos -->
   <div class="table-responsive">
     <table>
       <thead>
@@ -28,11 +28,9 @@
         </tr>
       </thead>
       <tbody id="users-table-body">
-        <!-- Renderizado dinámico vía UsersModule -->
+        <!-- Cargado por JS -->
       </tbody>
     </table>
+    <div id="users-pagination" class="pagination-wrapper"></div>
   </div>
-
-  <!-- Contenedor del Paginador -->
-  <div id="users-pagination" class="pagination-wrapper"></div>
 </div>

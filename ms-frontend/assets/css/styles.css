@@ -485,3 +485,122 @@ th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eef0f5; font
     text-align: center;
   }
 }
+
+/* Ajuste de maquetación para tablas dentro de .card */
+.card .table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.card table {
+  width: 100%;
+  table-layout: auto;
+}
+
+/* Romper correos o textos largos para que no empujen el ancho de la tabla */
+.card td {
+  word-break: break-word;
+}
+
+/* Alineación limpia para la cabecera */
+.header-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+/* --- AJUSTE DE MARCA Y LOGO (LOGIN Y SIDEBAR) --- */
+
+/* Estructura común para los contenedores de logo */
+.login-logo,
+.sb-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Control del título para que no se salga */
+.login-logo h2,
+.sb-logo h2 {
+  margin: 0;
+  font-size: 1.15rem; /* Tamaño proporcional para evitar desbordamiento */
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Colores de texto según el contexto */
+.login-logo h2 {
+  color: var(--navy);
+}
+
+.sb-logo h2 {
+  color: #ffffff;
+}
+
+/* Estilo para los subtítulos <p> y #sb-subtitle */
+.login-logo p,
+.sb-logo p,
+#sb-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.login-logo p {
+  color: var(--muted);
+}
+
+.sb-logo p,
+#sb-subtitle {
+  color: var(--yellow);
+}
+
+/* --- ESTILO PARA TI ICONO TI ALERTA (TOPBAR) --- */
+
+.icon-btn {
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--navy);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+}
+
+/* Hover ken Active state */
+.icon-btn:hover {
+  background: #f8fafc;
+  border-color: var(--blue);
+  color: var(--blue);
+  transform: translateY(-1px);
+}
+
+.icon-btn:active {
+  transform: translateY(0);
+}
+
+/* Optional: Puntos/Badge ti notipikasion (no adda baro nga alerta) */
+.icon-btn.has-notifications::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--red);
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+}
