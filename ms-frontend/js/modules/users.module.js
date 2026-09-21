@@ -4,13 +4,25 @@
  * @description Módulo autocontenido que gestiona peticiones HTTP, eventos del DOM, modales y lógica de usuarios.
  */
 
+import { PaginationHelper } from './pagination.component.js';
+
 export const UsersModule = {
   // Estado interno del módulo
   availableRoles: [],
   currentEditingUserId: null,
+  pagination: null,
 
   // --- INICIALIZACIÓN ---
   init() {
+    // Instanciar el helper reutilizable si aún no se ha creado
+    if (!this.pagination) {
+      this.pagination = new PaginationHelper({
+        containerId: 'users-pagination',
+        rowsPerPage: 5,
+        onPageChange: () => this.renderTable()
+      });
+    }
+
     this.initEvents();
     this.loadData();
   },
@@ -116,23 +128,31 @@ export const UsersModule = {
     try {
       const data = await this.getUsers();
       this.availableRoles = data.roles || [];
+      
+      // Pasar los datos al helper de paginación
+      this.pagination.setData(data.users || []);
+      
       this.renderRolesChecklist();
-      this.renderTable(data.users || []);
+      this.renderTable();
     } catch (err) {
       this.showMainAlert(err.message, true);
     }
   },
 
-  renderTable(users) {
+  renderTable() {
     const tbody = document.getElementById('users-table-body');
     if (!tbody) return;
 
-    if (!users.length) {
+    // Obtener la rebanada (slice) paginada desde el helper
+    const paginatedUsers = this.pagination.getPaginatedData();
+
+    if (!paginatedUsers.length) {
       tbody.innerHTML = '<tr><td colspan="6" class="text-center">No existen usuarios registrados.</td></tr>';
+      this.pagination.render();
       return;
     }
 
-    tbody.innerHTML = users.map(u => {
+    tbody.innerHTML = paginatedUsers.map(u => {
       const roleBadges = u.roles 
         ? u.roles.split(', ').map(r => `<span class="badge-role">${r}</span>`).join('') 
         : '<span class="no-role">Sin Rol</span>';
@@ -157,6 +177,9 @@ export const UsersModule = {
         </tr>
       `;
     }).join('');
+
+    // Renderizar los controles de navegación de página
+    this.pagination.render();
   },
 
   renderRolesChecklist() {

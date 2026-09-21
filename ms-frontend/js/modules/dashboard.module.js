@@ -7,6 +7,8 @@
 import { AuthModule } from './auth.module.js';
 import { SoporteModule } from './soporte.module.js';
 import { UsersModule } from './users.module.js';
+import { ProgramasModule } from './programas.module.js';
+import { PeriodosModule } from './periodos.module.js';
 
 export const DashboardModule = {
   configMenus: {
@@ -111,12 +113,18 @@ export const DashboardModule = {
         title.innerText = 'Gestión de Programas Académicos';
         sub.innerText = 'Módulo CRUD conectado al microservicio ms-academico';
         await this.renderModuloHtml(container, '../admin/programas.html', 'programas');
+        if (ProgramasModule && typeof ProgramasModule.init === 'function') {
+          ProgramasModule.init();
+        }
         break;
 
       case 'periodos':
         title.innerText = 'Gestión de Periodos Académicos';
         sub.innerText = 'Módulo CRUD conectado al microservicio ms-academico';
         await this.renderModuloHtml(container, '../admin/periodos.html', 'periodos');
+        if (PeriodosModule && typeof PeriodosModule.init === 'function') {
+          PeriodosModule.init();
+        }
         break;
 
       case 'pqrs':
@@ -141,7 +149,7 @@ export const DashboardModule = {
       const html = await response.text();
       container.innerHTML = html;
 
-      // Re-ejecutar scripts internos exactamente como en tu versión base
+      // Re-ejecutar scripts internos
       const scripts = container.querySelectorAll('script');
       scripts.forEach(oldScript => {
         const newScript = document.createElement('script');

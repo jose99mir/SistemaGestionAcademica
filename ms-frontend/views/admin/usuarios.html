@@ -1,118 +1,38 @@
-<div class="crud-card">
-  <div class="header-action">
+<div class="card">
+  <!-- Cabecera adaptable -->
+  <div class="card-header-flex">
     <div>
-      <h2>Gestión Global de Usuarios</h2>
-      <p class="subtitle">Administra accesos, roles y contraseñas de los usuarios.</p>
+      <h3 style="margin: 0;">Gestión Global de Usuarios</h3>
+      <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 0.9rem;">
+        Administra accesos, roles y contraseñas de los usuarios.
+      </p>
     </div>
-    <button id="btn-open-create" class="btn-primary">
+    <button id="btn-open-modal" class="btn-primary">
       <i class="fa-solid fa-user-plus"></i> Nuevo Usuario
     </button>
   </div>
 
-  <div id="main-alert" class="alert-box"></div>
+  <!-- Alertas del módulo -->
+  <div id="main-user-alert" class="alert-box" style="display: none;"></div>
 
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Usuario</th>
-        <th>Correo Electrónico</th>
-        <th>Roles Asignados</th>
-        <th>Estado</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody id="users-table-body">
-      <tr><td colspan="6" class="text-center">Cargando usuarios...</td></tr>
-    </tbody>
-  </table>
-</div>
-
-<!-- Modal Principal CRUD -->
-<div id="userModal" class="modal-overlay">
-  <div class="modal-content">
-    <h3 id="modalTitle">Crear Usuario</h3>
-    
-    <div id="modal-alert" class="alert-box"></div>
-
-    <form id="userForm">
-      <input type="hidden" id="userId">
-      
-      <div class="field">
-        <label for="userName">Nombre Completo</label>
-        <input type="text" id="userName" required placeholder="Ej. Juan Pérez" class="input-full">
-      </div>
-      
-      <div class="field">
-        <label for="userEmail">Correo Electrónico</label>
-        <input type="email" id="userEmail" required placeholder="usuario@unicomfacauca.edu.co" class="input-full">
-      </div>
-
-      <div id="creationPasswordFields">
-        <div class="field">
-          <label for="userPassword">Contraseña</label>
-          <input type="password" id="userPassword" placeholder="Mínimo 6 caracteres" class="input-full">
-        </div>
-
-        <div class="field">
-          <label for="userConfirmPassword">Confirmar Contraseña</label>
-          <input type="password" id="userConfirmPassword" placeholder="Repite la contraseña" class="input-full">
-        </div>
-      </div>
-
-      <div id="editPasswordBtnContainer" class="hidden-element margin-b-16">
-        <button type="button" id="btn-open-pass-modal" class="btn-secondary btn-full">
-          <i class="fa-solid fa-key"></i> Actualizar Contraseña de este Usuario
-        </button>
-      </div>
-
-      <div class="field">
-        <label>Asignación de Roles</label>
-        <div id="rolesChecklist" class="roles-checkbox-group"></div>
-      </div>
-
-      <div class="field hidden-element margin-b-16" id="statusContainer">
-        <label class="checkbox-label">
-          <input type="checkbox" id="userActive"> Usuario Activo en el Sistema
-        </label>
-      </div>
-
-      <div class="modal-actions">
-        <button type="button" id="btn-close-user-modal" class="btn-secondary">Cancelar</button>
-        <button type="submit" class="btn-primary padding-btn">Guardar Usuario</button>
-      </div>
-    </form>
+  <!-- Contenedor con scroll horizontal para la tabla -->
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Usuario</th>
+          <th>Correo Electrónico</th>
+          <th>Roles Asignados</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="users-table-body">
+        <!-- Renderizado dinámico vía UsersModule -->
+      </tbody>
+    </table>
   </div>
+
+  <!-- Contenedor del Paginador -->
+  <div id="users-pagination" class="pagination-wrapper"></div>
 </div>
-
-<!-- Modal Independiente para Cambiar Contraseña -->
-<div id="passModal" class="modal-overlay">
-  <div class="modal-content">
-    <h3>Actualizar Contraseña</h3>
-    <p class="subtitle">Establece una nueva clave de acceso para el usuario seleccionado.</p>
-    
-    <div id="pass-modal-alert" class="alert-box"></div>
-
-    <form id="passForm">
-      <div class="field">
-        <label for="newPassword">Nueva Contraseña</label>
-        <input type="password" id="newPassword" required placeholder="Mínimo 6 caracteres" class="input-full">
-      </div>
-
-      <div class="field margin-b-16">
-        <label for="confirmNewPassword">Confirmar Nueva Contraseña</label>
-        <input type="password" id="confirmNewPassword" required placeholder="Repite la nueva contraseña" class="input-full">
-      </div>
-
-      <div class="modal-actions">
-        <button type="button" id="btn-close-pass-modal" class="btn-secondary">Cancelar</button>
-        <button type="submit" class="btn-primary padding-btn">Actualizar Clave</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<script type="module">
-  import { UsersModule } from '../../js/modules/users.module.js';
-  UsersModule.init();
-</script>

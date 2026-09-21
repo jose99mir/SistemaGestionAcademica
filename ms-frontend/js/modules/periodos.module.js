@@ -5,10 +5,19 @@
  */
 
 import { AuthModule } from './auth.module.js';
+import { PaginationHelper } from './pagination.component.js';
 
 export const PeriodosModule = {
+  pagination: null,
+
   // --- INICIALIZACIÓN ---
   init() {
+    this.pagination = new PaginationHelper({
+      containerId: 'periodos-pagination',
+      rowsPerPage: 5,
+      onPageChange: () => this.renderTable()
+    });
+
     this.initEvents();
     this.loadData();
   },
@@ -20,7 +29,6 @@ export const PeriodosModule = {
 
     document.getElementById('periodForm')?.addEventListener('submit', (e) => this.handlePeriodFormSubmit(e));
 
-    // Delegación de eventos en la tabla
     const tbody = document.getElementById('periodos-table-body');
     if (tbody) {
       tbody.onclick = (e) => {
@@ -89,24 +97,43 @@ export const PeriodosModule = {
   // --- CARGA Y RENDERIZADO ---
   async loadData() {
     try {
-      const periodos = await this.getPeriodos();
-      this.renderTable(periodos);
+      const responseData = await this.getPeriodos();
+      
+      let lista = [];
+      if (Array.isArray(responseData)) {
+        lista = responseData;
+      } else if (responseData && Array.isArray(responseData.periodos)) {
+        lista = responseData.periodos;
+      } else if (responseData && Array.isArray(responseData.data)) {
+        lista = responseData.data;
+      }
+
+      this.pagination.setData(lista);
+      this.renderTable();
     } catch (err) {
       console.error('Error al cargar datos:', err);
       this.showMainAlert(err.message, true);
     }
   },
 
-  renderTable(periodos) {
+  renderTable() {
     const tbody = document.getElementById('periodos-table-body');
     if (!tbody) return;
 
-    if (!periodos || !periodos.length) {
+    // Asegurar re-asociación del contenedor en el DOM actual
+    if (this.pagination) {
+      this.pagination.container = document.getElementById('periodos-pagination');
+    }
+
+    const paginatedPeriodos = this.pagination.getPaginatedData();
+
+    if (!paginatedPeriodos.length) {
       tbody.innerHTML = '<tr><td colspan="4" class="text-center">No existen periodos académicos registrados.</td></tr>';
+      this.pagination.render();
       return;
     }
 
-    tbody.innerHTML = periodos.map(p => {
+    tbody.innerHTML = paginatedPeriodos.map(p => {
       const isActivo = Boolean(p.activo);
       const statusBadge = isActivo 
         ? '<span class="badge-active">Activo</span>' 
@@ -126,6 +153,8 @@ export const PeriodosModule = {
         </tr>
       `;
     }).join('');
+
+    this.pagination.render();
   },
 
   // --- CONTROL DE MODALES ---

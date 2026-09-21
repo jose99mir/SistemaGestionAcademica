@@ -1,14 +1,24 @@
 /**
  * @file Programas Module - Frontend
  * @location ms-frontend/js/modules/programas.module.js
- * @description Gestión de programas académicos vía API Gateway (ms-academico) y control del DOM del módulo.
+ * @description Gestión de programas académicos vía API Gateway (ms-academico) y control del DOM.
  */
 
 import { AuthModule } from './auth.module.js';
+import { PaginationHelper } from './pagination.component.js';
 
 export const ProgramasModule = {
+  pagination: null,
+
   // --- INICIALIZACIÓN ---
   init() {
+    // Instanciar el helper si no existe
+    this.pagination = new PaginationHelper({
+      containerId: 'programs-pagination',
+      rowsPerPage: 5,
+      onPageChange: () => this.renderTable()
+    });
+
     this.initEvents();
     this.loadData();
   },
@@ -20,7 +30,6 @@ export const ProgramasModule = {
 
     document.getElementById('programForm')?.addEventListener('submit', (e) => this.handleProgramFormSubmit(e));
 
-    // Delegación de eventos en la tabla
     const tbody = document.getElementById('programs-table-body');
     if (tbody) {
       tbody.onclick = (e) => {
@@ -41,13 +50,11 @@ export const ProgramasModule = {
   // --- PETICIONES HTTP ---
   async getProgramas() {
     const res = await fetch('/api/academico/programas', {
-      headers: { 
-        'Authorization': `Bearer ${AuthModule.getToken()}` 
-      }
+      headers: { 'Authorization': `Bearer ${AuthModule.getToken()}` }
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || data.mensaje || 'Error al obtener programas');
-    return data.programas || data;
+    return data;
   },
 
   async createPrograma(payload) {
@@ -81,9 +88,7 @@ export const ProgramasModule = {
   async deletePrograma(id) {
     const res = await fetch(`/api/academico/programas/${id}`, {
       method: 'DELETE',
-      headers: { 
-        'Authorization': `Bearer ${AuthModule.getToken()}` 
-      }
+      headers: { 'Authorization': `Bearer ${AuthModule.getToken()}` }
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || data.mensaje || 'Error al eliminar el programa');
@@ -93,24 +98,43 @@ export const ProgramasModule = {
   // --- CARGA Y RENDERIZADO ---
   async loadData() {
     try {
-      const data = await this.getProgramas();
-      this.renderTable(data);
+      const responseData = await this.getProgramas();
+      
+      let lista = [];
+      if (Array.isArray(responseData)) {
+        lista = responseData;
+      } else if (responseData && Array.isArray(responseData.programas)) {
+        lista = responseData.programas;
+      } else if (responseData && Array.isArray(responseData.data)) {
+        lista = responseData.data;
+      }
+      
+      this.pagination.setData(lista);
+      this.renderTable();
     } catch (err) {
       console.error('Error al cargar datos:', err);
       this.showMainAlert(err.message, true);
     }
   },
 
-  renderTable(programas) {
+  renderTable() {
     const tbody = document.getElementById('programs-table-body');
     if (!tbody) return;
 
-    if (!programas || !programas.length) {
+    // Asegurar re-asociación del contenedor en el DOM actual
+    if (this.pagination) {
+      this.pagination.container = document.getElementById('programs-pagination');
+    }
+
+    const paginatedPrograms = this.pagination.getPaginatedData();
+
+    if (!paginatedPrograms.length) {
       tbody.innerHTML = '<tr><td colspan="6" class="text-center">No existen programas registrados.</td></tr>';
+      this.pagination.render();
       return;
     }
 
-    tbody.innerHTML = programas.map(p => {
+    tbody.innerHTML = paginatedPrograms.map(p => {
       const isActivo = p.activo !== undefined ? p.activo : true;
       const statusBadge = isActivo 
         ? '<span class="badge-active">Activo</span>' 
@@ -132,6 +156,8 @@ export const ProgramasModule = {
         </tr>
       `;
     }).join('');
+
+    this.pagination.render();
   },
 
   // --- CONTROL DE MODALES ---
