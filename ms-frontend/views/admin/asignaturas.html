@@ -1,0 +1,88 @@
+<div class="card">
+  <!-- Cabecera Adaptable -->
+  <div class="header-action">
+    <div>
+      <h3 style="margin: 0; font-size: 1.4rem; color: var(--navy); font-weight: 700;">Gestión de Asignaturas</h3>
+      <p class="subtitle" style="margin-top: 4px;">Consulta y administración de la carga académica.</p>
+    </div>
+
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <!-- Combo de Periodo (Visible para Estudiantes) -->
+      <div id="filter-periodo-container" style="display: none;">
+        <select id="select-periodo-filtro" class="input-full" style="margin: 0; min-width: 180px;">
+          <option value="">-- Todos los Periodos --</option>
+        </select>
+      </div>
+
+      <!-- Botón visible solo para ADMIN -->
+      <button id="btn-open-asignatura-create" type="button" class="btn-primary btn-page" style="width: auto; display: none;">
+        <i class="fa-solid fa-plus"></i> Nueva Asignatura
+      </button>
+    </div>
+  </div>
+
+  <div id="main-asignatura-alert" class="alert-box" style="display: none;"></div>
+
+  <!-- Contenedor Responsivo -->
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead id="asignaturas-table-head">
+        <!-- Renderizado dinámico según el Rol -->
+      </thead>
+      <tbody id="asignaturas-table-body">
+        <!-- Carga vía JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <div id="asignaturas-pagination" class="pagination-wrapper"></div>
+</div>
+
+<!-- Modal para Crear/Editar Asignatura -->
+<div id="asignaturaModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <h3 id="asignaturaModalTitle">Nueva Asignatura</h3>
+    
+    <div id="asignatura-modal-alert" class="alert-box alert-error" style="display: none;"></div>
+
+    <form id="asignaturaForm">
+      <input type="hidden" id="asignaturaId">
+
+      <div class="field">
+        <label for="asignaturaCode">Código de la Asignatura</label>
+        <input type="text" id="asignaturaCode" class="input-full" required placeholder="Ej: MAT-101">
+      </div>
+
+      <div class="field">
+        <label for="asignaturaName">Nombre de la Asignatura</label>
+        <input type="text" id="asignaturaName" class="input-full" required placeholder="Ej: Cálculo Diferencial">
+      </div>
+
+      <div class="field">
+        <label for="asignaturaCreditos">Créditos</label>
+        <input type="number" id="asignaturaCreditos" class="input-full" required min="1" max="10" placeholder="Ej: 3">
+      </div>
+
+      <!-- Combo Programa Académico -->
+      <div class="field">
+        <label for="asignaturaPrograma">Programa Académico</label>
+        <select id="asignaturaPrograma" class="input-full" required>
+          <option value="">-- Seleccione un Programa --</option>
+        </select>
+      </div>
+
+      <!-- Combo Profesor / Docente -->
+      <div class="field">
+        <label for="asignaturaDocente">Profesor Asignado</label>
+        <select id="asignaturaDocente" class="input-full">
+          <option value="">-- Seleccione un Profesor (Opcional) --</option>
+        </select>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="btn-close-asignatura-modal" class="btn-secondary">Cancelar</button>
+        <button type="submit" class="btn-primary padding-btn" style="width: auto;">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>

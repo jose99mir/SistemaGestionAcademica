@@ -1,0 +1,106 @@
+<div class="card">
+  <div class="header-action">
+    <div>
+      <h3 style="margin: 0; font-size: 1.4rem; color: var(--navy); font-weight: 700;">Gestión de Matrículas</h3>
+      <p class="subtitle" style="margin-top: 4px;">Asignación de estudiantes a materias y periodos académicos.</p>
+    </div>
+
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <select id="select-matricula-periodo-filtro" class="input-full" style="margin: 0; min-width: 180px;">
+        <option value="">-- Todos los Periodos --</option>
+      </select>
+
+      <button id="btn-open-matricula-modal" type="button" class="btn-primary btn-page" style="width: auto; display: none;">
+        <i class="fa-solid fa-user-plus"></i> Nueva Matrícula
+      </button>
+    </div>
+  </div>
+
+  <div id="main-matricula-alert" class="alert-box" style="display: none;"></div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Asignatura</th>
+          <th>Periodo</th>
+          <th>Profesor Asignado</th>
+          <th class="text-center">Estudiantes Matriculados</th>
+          <th id="th-matricula-acciones" class="text-center" style="width: 100px;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="matriculas-table-body">
+        <!-- Carga Dinámica vía JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <div id="matriculas-pagination" class="pagination-wrapper"></div>
+</div>
+
+<!-- Modal Gestionar Matrícula -->
+<div id="matriculaModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content" style="max-width: 820px;">
+    <h3 id="matriculaModalTitle">Gestionar Matrícula</h3>
+    <div id="matricula-modal-alert" class="alert-box alert-error" style="display: none;"></div>
+
+    <form id="matriculaForm">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="field">
+          <label for="matriculaPeriodoSelect">Periodo Académico</label>
+          <select id="matriculaPeriodoSelect" class="input-full" required>
+            <option value="">-- Seleccione --</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="matriculaMateriaSelect">Asignatura</label>
+          <select id="matriculaMateriaSelect" class="input-full" required>
+            <option value="">-- Seleccione --</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Buscador de Estudiante -->
+      <div class="field" style="position: relative; margin-top: 10px;">
+        <label for="inputBuscarEstudiante">Buscar Estudiante (Documento o Nombre)</label>
+        <input type="text" id="inputBuscarEstudiante" class="input-full" placeholder="Escriba para buscar estudiante..." autocomplete="off">
+        <div id="resultadosBusquedaEstudiante" class="search-results-dropdown" style="display: none;"></div>
+      </div>
+
+      <!-- Grid de Estudiantes Seleccionados -->
+      <label style="font-weight: 600; font-size: 0.9rem; margin-top: 10px; display: block;">
+        Estudiantes Seleccionados (<span id="countEstudiantesGrid">0</span>)
+      </label>
+
+      <div class="table-responsive" style="border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px;">
+        <table class="data-table" style="margin: 0;">
+          <thead>
+            <tr>
+              <th>Documento</th>
+              <th>Nombre Completo</th>
+              <th>Email</th>
+              <th class="text-center" style="width: 160px;">Estado Matrícula</th>
+              <th class="text-center" style="width: 60px;">Remover</th>
+            </tr>
+          </thead>
+          <tbody id="gridEstudiantesBody">
+            <tr>
+              <td colspan="5" class="text-center" style="color: var(--muted); padding: 15px;">
+                No hay estudiantes agregados al grupo.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginador Interno -->
+      <div id="modal-grid-pagination" class="pagination-wrapper" style="margin-bottom: 15px;"></div>
+
+      <div class="modal-actions">
+        <button type="button" id="btn-close-matricula-modal" class="btn-secondary">Cancelar</button>
+        <button type="submit" class="btn-primary padding-btn" style="width: auto;">Guardar Matrículas</button>
+      </div>
+    </form>
+  </div>
+</div>

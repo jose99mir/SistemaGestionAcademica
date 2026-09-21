@@ -9,6 +9,8 @@ import { SoporteModule } from './soporte.module.js';
 import { UsersModule } from './users.module.js';
 import { ProgramasModule } from './programas.module.js';
 import { PeriodosModule } from './periodos.module.js';
+import { AsignaturasModule } from './asignaturas.module.js';
+import MatriculasModule from './matriculas.module.js';
 
 export const DashboardModule = {
   configMenus: {
@@ -30,6 +32,7 @@ export const DashboardModule = {
       { id: 'programas', label: 'Gestión Programas', icon: 'fa-graduation-cap' },
       { id: 'periodos', label: 'Periodos Académicos', icon: 'fa-calendar-days' },
       { id: 'materias', label: 'Gestión Asignaturas', icon: 'fa-book' },
+      { id: 'matriculas', label: 'Matrículas', icon: 'fa-user-graduate' },
       { id: 'pqrs', label: 'Administrar Tickets PQRS', icon: 'fa-life-ring' }
     ]
   },
@@ -125,6 +128,22 @@ export const DashboardModule = {
         if (PeriodosModule && typeof PeriodosModule.init === 'function') {
           PeriodosModule.init();
         }
+        break;
+
+      case 'materias':
+        title.innerText = 'Gestión de Asignaturas';
+        sub.innerText = 'Módulo CRUD y carga docente conectado a ms-academico';
+        await this.renderModuloHtml(container, '../admin/asignaturas.html', 'asignaturas');
+        requestAnimationFrame(() => {
+          if (AsignaturasModule && typeof AsignaturasModule.init === 'function') { AsignaturasModule.init();}
+      });
+      break;
+
+      case 'matriculas':
+       title.innerText = 'Gestión Global de Matrículas';
+       sub.innerText = 'Asignación de estudiantes a materias y periodos académicos';
+       await this.renderModuloHtml(container, '../admin/matriculas.html', 'matriculas');
+        if (MatriculasModule && typeof MatriculasModule.init === 'function') { await MatriculasModule.init(); }
         break;
 
       case 'pqrs':
@@ -258,6 +277,66 @@ export const DashboardModule = {
 
     } catch (err) {
       container.innerHTML = '<div class="card"><p style="color:var(--red, #ef4444)">Error al consultar las PQRS.</p></div>';
+    }
+  },
+
+  // --- 1. ABRIR MODAL PARA CREAR ---
+  async openModal() {
+    this.hideAlerts();
+    document.getElementById('asignaturaForm')?.reset();
+    document.getElementById('asignaturaId').value = '';
+
+    // ESPERA ASÍNCRONA: Llena los comboboxes de Programas y Profesores ANTES de mostrar el modal
+    await this.loadCombosOptions();
+
+    const modalTitle = document.getElementById('asignaturaModalTitle');
+    if (modalTitle) modalTitle.innerText = 'Nueva Asignatura';
+
+    const modal = document.getElementById('asignaturaModal');
+    if (modal) modal.style.display = 'flex';
+  },
+
+  // --- 2. ABRIR MODAL PARA EDITAR ---
+  async editItem(id) {
+    try {
+      this.hideAlerts();
+
+      // ESPERA ASÍNCRONA: Carga las opciones para que los <select> ya tengan los <option> listos al asignar el valor
+      await this.loadCombosOptions();
+
+      const res = await fetch(`/api/academico/asignaturas/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${AuthModule.getToken()}`,
+          'x-user-role': AuthModule.getUser()?.rol
+        }
+      });
+
+      if (!res.ok) throw new Error('No se pudieron obtener los detalles de la asignatura');
+      const item = await res.json();
+
+      document.getElementById('asignaturaId').value = item.id;
+      document.getElementById('asignaturaCode').value = item.codigo || '';
+      document.getElementById('asignaturaName').value = item.nombre || item.materiaNombre || '';
+      document.getElementById('asignaturaCreditos').value = item.creditos || 3;
+
+      // Asigna las opciones seleccionadas
+      if (document.getElementById('asignaturaPrograma')) {
+        document.getElementById('asignaturaPrograma').value = item.programa_id || item.programaId || '';
+      }
+
+      if (document.getElementById('asignaturaDocente')) {
+        document.getElementById('asignaturaDocente').value = item.docente_id || item.docenteId || '';
+      }
+
+      const modalTitle = document.getElementById('asignaturaModalTitle');
+      if (modalTitle) modalTitle.innerText = 'Editar Asignatura';
+
+      const modal = document.getElementById('asignaturaModal');
+      if (modal) modal.style.display = 'flex';
+
+    } catch (err) {
+      console.error('Error al editar asignatura:', err);
+      this.showAlert(err.message, true);
     }
   }
 };

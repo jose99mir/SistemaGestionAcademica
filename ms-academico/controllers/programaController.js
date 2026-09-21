@@ -115,6 +115,16 @@ class ProgramaController {
       console.error("--> [PROGRAMA INACTIVATE ERROR]:", error);
       return res.status(500).json({ error: "Error al inactivar programa", detalle: error.message });
     }
+   }
+
+   async list(req, res) {
+   try {
+    const [rows] = await db.query("SELECT id, nombre FROM programas ORDER BY nombre ASC");
+    return res.json(rows); // Retorna arreglo directo [...]
+   } catch (error) {
+    console.error("Error en list programas:", error);
+    return res.status(500).json({ mensaje: "Error al obtener programas" });
+   }
   }
 }
 
