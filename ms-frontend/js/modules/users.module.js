@@ -14,7 +14,6 @@ export const UsersModule = {
 
   // --- INICIALIZACIÓN ---
   init() {
-    // Instanciar el helper reutilizable si aún no se ha creado
     if (!this.pagination) {
       this.pagination = new PaginationHelper({
         containerId: 'users-pagination',
@@ -129,7 +128,6 @@ export const UsersModule = {
       const data = await this.getUsers();
       this.availableRoles = data.roles || [];
       
-      // Pasar los datos al helper de paginación
       this.pagination.setData(data.users || []);
       
       this.renderRolesChecklist();
@@ -143,11 +141,10 @@ export const UsersModule = {
     const tbody = document.getElementById('users-table-body');
     if (!tbody) return;
 
-    // Obtener la rebanada (slice) paginada desde el helper
     const paginatedUsers = this.pagination.getPaginatedData();
 
     if (!paginatedUsers.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center">No existen usuarios registrados.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center">No existen usuarios registrados.</td></tr>';
       this.pagination.render();
       return;
     }
@@ -166,6 +163,7 @@ export const UsersModule = {
       return `
         <tr>
           <td>${u.id}</td>
+          <td>${u.tipo_documento || 'CC'} ${u.documento || ''}</td>
           <td><b>${u.nombre}</b></td>
           <td>${u.email}</td>
           <td>${roleBadges}</td>
@@ -178,7 +176,6 @@ export const UsersModule = {
       `;
     }).join('');
 
-    // Renderizar los controles de navegación de página
     this.pagination.render();
   },
 
@@ -199,6 +196,7 @@ export const UsersModule = {
     this.currentEditingUserId = null;
     document.getElementById('userForm').reset();
     document.getElementById('userId').value = '';
+    document.getElementById('userTipoDocumento').value = 'CC';
     document.getElementById('modalTitle').innerText = 'Crear Nuevo Usuario';
     
     document.getElementById('creationPasswordFields').style.display = 'block';
@@ -216,6 +214,8 @@ export const UsersModule = {
     document.getElementById('userForm').reset();
     document.getElementById('modalTitle').innerText = 'Editar Usuario';
     document.getElementById('userId').value = user.id;
+    document.getElementById('userTipoDocumento').value = user.tipo_documento || 'CC';
+    document.getElementById('userDocumento').value = user.documento || '';
     document.getElementById('userName').value = user.nombre;
     document.getElementById('userEmail').value = user.email;
     
@@ -266,6 +266,8 @@ export const UsersModule = {
     }
 
     const payload = {
+      tipo_documento: document.getElementById('userTipoDocumento').value,
+      documento: document.getElementById('userDocumento').value,
       nombre: document.getElementById('userName').value,
       email: document.getElementById('userEmail').value,
       roles: selectedRoles,

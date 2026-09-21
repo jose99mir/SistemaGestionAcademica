@@ -7,69 +7,158 @@
 const pool = require("../config/database");
 
 class UserModel {
-  /**
-   * Obtiene la lista completa de usuarios (sin incluir hashes de contraseña)
-   */
-  static async findAll() {
+  static async findByEmailAndRole(email, rolSeleccionado) {
     const query = `
-      SELECT id, nombre, email, rol, activo, creado_en 
+      SELECT 
+        u.id,
+        u.tipo_documento,
+        u.documento,
+        u.nombre,
+        u.email,
+        u.password_hash,
+        u.activo,
+        r.nombre AS rol
+      FROM usuarios u
+      INNER JOIN usuario_rol ur ON u.id = ur.usuario_id
+      INNER JOIN roles r ON ur.rol_id = r.id
+      WHERE LOWER(u.email) = LOWER(?)
+        AND LOWER(r.nombre) = LOWER(?)
+        AND ur.activo = 1
+      LIMIT 1
+    `;
+    const [rows] = await pool.execute(query, [email, rolSeleccionado]);
+    if (!rows.length) return null;
+    return { ...rows[0], activo: Boolean(rows[0].activo) };
+  }
+
+  static async findByEmail(email) {
+    const query = `
+      SELECT id, tipo_documento, documento, nombre, email, password_hash, activo 
       FROM usuarios 
-      ORDER BY id DESC
+      WHERE LOWER(email) = LOWER(?) 
+      LIMIT 1
+    `;
+    const [rows] = await pool.execute(query, [email]);
+    if (!rows.length) return null;
+    return { ...rows[0], activo: Boolean(rows[0].activo) };
+  }
+
+  static async findByDocumento(documento) {
+    const query = `
+      SELECT id, tipo_documento, documento, nombre, email, password_hash, activo 
+      FROM usuarios 
+      WHERE documento = ? 
+      LIMIT 1
+    `;
+    const [rows] = await pool.execute(query, [documento]);
+    if (!rows.length) return null;
+    return { ...rows[0], activo: Boolean(rows[0].activo) };
+  }
+
+  static async getAllUsers() {
+    const query = `
+      SELECT 
+        u.id, 
+        u.tipo_documento,
+        u.documento,
+        u.nombre, 
+        u.email, 
+        u.activo,
+        GROUP_CONCAT(r.nombre SEPARATOR ', ') AS roles,
+        GROUP_CONCAT(r.id SEPARATOR ',') AS roles_ids
+      FROM usuarios u
+      LEFT JOIN usuario_rol ur ON u.id = ur.usuario_id AND ur.activo = 1
+      LEFT JOIN roles r ON ur.rol_id = r.id
+      GROUP BY u.id
+      ORDER BY u.id DESC
     `;
     const [rows] = await pool.execute(query);
     return rows;
   }
 
-  /**
-   * Obtiene un usuario específico por ID
-   * @param {number} id 
-   */
-  static async findById(id) {
-    const query = `
-      SELECT id, nombre, email, rol, activo, creado_en 
-      FROM usuarios 
-      WHERE id = ? 
-      LIMIT 1
-    `;
-    const [rows] = await pool.execute(query, [id]);
-    return rows.length ? rows[0] : null;
+  static async getAllRoles() {
+    const [rows] = await pool.execute("SELECT id, nombre FROM roles ORDER BY id ASC");
+    return rows;
   }
 
-  /**
-   * Crea un nuevo usuario en la base de datos
-   * @param {Object} userData 
-   */
-  static async create({ nombre, email, rol, password_hash }) {
-    const query = `
-      INSERT INTO usuarios (nombre, email, rol, activo, password_hash) 
-      VALUES (?, ?, ?, 1, ?)
-    `;
-    const [result] = await pool.execute(query, [nombre, email, rol, password_hash]);
-    return result.insertId;
+  static async createUser(tipoDocumento, documento, nombre, email, passwordHash, roleIds) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [resUser] = await connection.execute(
+        "INSERT INTO usuarios (tipo_documento, documento, nombre, email, password_hash, activo) VALUES (?, ?, ?, ?, ?, 1)",
+        [tipoDocumento, documento, nombre, email, passwordHash]
+      );
+      const userId = resUser.insertId;
+
+      if (Array.isArray(roleIds) && roleIds.length > 0) {
+        for (const roleId of roleIds) {
+          await connection.execute(
+            "INSERT INTO usuario_rol (usuario_id, rol_id, activo) VALUES (?, ?, 1)",
+            [userId, Number(roleId)]
+          );
+        }
+      }
+
+      await connection.commit();
+      return userId;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 
-  /**
-   * Actualiza la información básica de un usuario
-   * @param {number} id 
-   * @param {Object} userData 
-   */
-  static async update(id, { nombre, email, rol, activo }) {
-    const query = `
-      UPDATE usuarios 
-      SET nombre = ?, email = ?, rol = ?, activo = ? 
-      WHERE id = ?
-    `;
-    const [result] = await pool.execute(query, [nombre, email, rol, activo ? 1 : 0, id]);
+  static async updateUser(id, tipoDocumento, documento, nombre, email, passwordHash, activo, roleIds) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      if (passwordHash) {
+        await connection.execute(
+          "UPDATE usuarios SET tipo_documento = ?, documento = ?, nombre = ?, email = ?, password_hash = ?, activo = ? WHERE id = ?",
+          [tipoDocumento, documento, nombre, email, passwordHash, activo ? 1 : 0, id]
+        );
+      } else {
+        await connection.execute(
+          "UPDATE usuarios SET tipo_documento = ?, documento = ?, nombre = ?, email = ?, activo = ? WHERE id = ?",
+          [tipoDocumento, documento, nombre, email, activo ? 1 : 0, id]
+        );
+      }
+
+      await connection.execute("DELETE FROM usuario_rol WHERE usuario_id = ?", [id]);
+
+      if (Array.isArray(roleIds) && roleIds.length > 0) {
+        for (const roleId of roleIds) {
+          await connection.execute(
+            "INSERT INTO usuario_rol (usuario_id, rol_id, activo) VALUES (?, ?, 1)",
+            [id, Number(roleId)]
+          );
+        }
+      }
+
+      await connection.commit();
+      return true;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  static async updatePasswordOnly(id, passwordHash) {
+    const [result] = await pool.execute(
+      "UPDATE usuarios SET password_hash = ? WHERE id = ?",
+      [passwordHash, id]
+    );
     return result.affectedRows > 0;
   }
 
-  /**
-   * Elimina un usuario por su ID
-   * @param {number} id 
-   */
-  static async delete(id) {
-    const query = "DELETE FROM usuarios WHERE id = ?";
-    const [result] = await pool.execute(query, [id]);
+  static async deleteUser(id) {
+    const [result] = await pool.execute("DELETE FROM usuarios WHERE id = ?", [id]);
     return result.affectedRows > 0;
   }
 }

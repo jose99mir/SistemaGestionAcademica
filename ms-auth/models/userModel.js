@@ -10,6 +10,8 @@ class UserModel {
     const query = `
       SELECT 
         u.id,
+        u.tipo_documento,
+        u.documento,
         u.nombre,
         u.email,
         u.password_hash,
@@ -30,7 +32,7 @@ class UserModel {
 
   static async findByEmail(email) {
     const query = `
-      SELECT id, nombre, email, password_hash, activo 
+      SELECT id, tipo_documento, documento, nombre, email, password_hash, activo 
       FROM usuarios 
       WHERE LOWER(email) = LOWER(?) 
       LIMIT 1
@@ -40,10 +42,24 @@ class UserModel {
     return { ...rows[0], activo: Boolean(rows[0].activo) };
   }
 
+  static async findByDocumento(documento) {
+    const query = `
+      SELECT id, tipo_documento, documento, nombre, email, password_hash, activo 
+      FROM usuarios 
+      WHERE documento = ? 
+      LIMIT 1
+    `;
+    const [rows] = await pool.execute(query, [documento]);
+    if (!rows.length) return null;
+    return { ...rows[0], activo: Boolean(rows[0].activo) };
+  }
+
   static async getAllUsers() {
     const query = `
       SELECT 
         u.id, 
+        u.tipo_documento,
+        u.documento,
         u.nombre, 
         u.email, 
         u.activo,
@@ -64,14 +80,14 @@ class UserModel {
     return rows;
   }
 
-  static async createUser(nombre, email, passwordHash, roleIds) {
+  static async createUser(tipoDocumento, documento, nombre, email, passwordHash, roleIds) {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
 
       const [resUser] = await connection.execute(
-        "INSERT INTO usuarios (nombre, email, password_hash, activo) VALUES (?, ?, ?, 1)",
-        [nombre, email, passwordHash]
+        "INSERT INTO usuarios (tipo_documento, documento, nombre, email, password_hash, activo) VALUES (?, ?, ?, ?, ?, 1)",
+        [tipoDocumento, documento, nombre, email, passwordHash]
       );
       const userId = resUser.insertId;
 
@@ -94,20 +110,20 @@ class UserModel {
     }
   }
 
-  static async updateUser(id, nombre, email, passwordHash, activo, roleIds) {
+  static async updateUser(id, tipoDocumento, documento, nombre, email, passwordHash, activo, roleIds) {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
 
       if (passwordHash) {
         await connection.execute(
-          "UPDATE usuarios SET nombre = ?, email = ?, password_hash = ?, activo = ? WHERE id = ?",
-          [nombre, email, passwordHash, activo ? 1 : 0, id]
+          "UPDATE usuarios SET tipo_documento = ?, documento = ?, nombre = ?, email = ?, password_hash = ?, activo = ? WHERE id = ?",
+          [tipoDocumento, documento, nombre, email, passwordHash, activo ? 1 : 0, id]
         );
       } else {
         await connection.execute(
-          "UPDATE usuarios SET nombre = ?, email = ?, activo = ? WHERE id = ?",
-          [nombre, email, activo ? 1 : 0, id]
+          "UPDATE usuarios SET tipo_documento = ?, documento = ?, nombre = ?, email = ?, activo = ? WHERE id = ?",
+          [tipoDocumento, documento, nombre, email, activo ? 1 : 0, id]
         );
       }
 
@@ -132,7 +148,6 @@ class UserModel {
     }
   }
 
-  // Permite actualizar únicamente la contraseña del usuario
   static async updatePasswordOnly(id, passwordHash) {
     const [result] = await pool.execute(
       "UPDATE usuarios SET password_hash = ? WHERE id = ?",

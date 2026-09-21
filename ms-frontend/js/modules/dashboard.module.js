@@ -108,7 +108,7 @@ export const DashboardModule = {
       case 'usuarios':
         title.innerText = 'Gestión Global de Usuarios';
         sub.innerText = 'Módulo CRUD conectado al microservicio ms-auth';
-        await this.renderModuloHtml(container, '../admin/usuarios.html', 'usuarios');
+        await this.renderModuloHtml(container, '../usuarios/usuarios.html', 'usuarios');
         if (UsersModule && typeof UsersModule.init === 'function') {
           UsersModule.init();
         }

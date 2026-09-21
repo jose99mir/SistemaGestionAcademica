@@ -21,10 +21,15 @@ class UserController {
 
   static async create(req, res) {
     try {
-      const { nombre, email, password, roles } = req.body || {};
+      const { tipo_documento, documento, nombre, email, password, roles } = req.body || {};
 
-      if (!nombre || !email || !password) {
-        return res.status(400).json({ error: "Nombre, email y contraseña son obligatorios" });
+      if (!documento || !nombre || !email || !password) {
+        return res.status(400).json({ error: "Tipo de documento, documento, nombre, email y contraseña son obligatorios" });
+      }
+
+      const existingDoc = await UserModel.findByDocumento(documento.trim());
+      if (existingDoc) {
+        return res.status(400).json({ error: "El número de documento ya se encuentra registrado" });
       }
 
       const existingUser = await UserModel.findByEmail(email);
@@ -32,8 +37,10 @@ class UserController {
         return res.status(400).json({ error: "El correo electrónico ya se encuentra registrado" });
       }
 
+      const tipoDocValido = ['CC', 'TI', 'CE', 'PASAPORTE'].includes(tipo_documento) ? tipo_documento : 'CC';
       const hash = await bcrypt.hash(password, 10);
-      await UserModel.createUser(nombre.trim(), email.trim().toLowerCase(), hash, roles);
+      
+      await UserModel.createUser(tipoDocValido, documento.trim(), nombre.trim(), email.trim().toLowerCase(), hash, roles);
 
       return res.json({ mensaje: "Usuario creado correctamente" });
     } catch (error) {
@@ -45,7 +52,7 @@ class UserController {
   static async update(req, res) {
     try {
       const { id } = req.params;
-      const { nombre, email, password, activo, roles } = req.body || {};
+      const { tipo_documento, documento, nombre, email, password, activo, roles } = req.body || {};
 
       // 1. Actualización exclusiva de contraseña
       if (password && !nombre && !email) {
@@ -58,8 +65,8 @@ class UserController {
       }
 
       // 2. Actualización de datos del perfil
-      if (!nombre || !email) {
-        return res.status(400).json({ error: "Nombre y email son obligatorios" });
+      if (!documento || !nombre || !email) {
+        return res.status(400).json({ error: "Documento, nombre y email son obligatorios" });
       }
 
       let passwordHash = null;
@@ -67,7 +74,9 @@ class UserController {
         passwordHash = await bcrypt.hash(password.trim(), 10);
       }
 
-      await UserModel.updateUser(id, nombre.trim(), email.trim().toLowerCase(), passwordHash, activo, roles);
+      const tipoDocValido = ['CC', 'TI', 'CE', 'PASAPORTE'].includes(tipo_documento) ? tipo_documento : 'CC';
+
+      await UserModel.updateUser(id, tipoDocValido, documento.trim(), nombre.trim(), email.trim().toLowerCase(), passwordHash, activo, roles);
       return res.json({ mensaje: "Usuario actualizado correctamente" });
 
     } catch (error) {

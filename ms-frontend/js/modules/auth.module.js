@@ -1,6 +1,7 @@
 /**
  * @file Auth Module
  * @location ms-frontend/js/modules/auth.module.js
+ * @description Módulo de autenticación encargado del inicio de sesión, manejo de sesión en localStorage y control de errores en la interfaz.
  */
 
 export const AuthModule = {
@@ -34,6 +35,7 @@ export const AuthModule = {
     this.selectedRol = rol;
     const errorContainer = document.getElementById('error-message');
     if (errorContainer) {
+      errorContainer.innerText = '';
       errorContainer.classList.remove('show');
     }
 
@@ -47,7 +49,10 @@ export const AuthModule = {
     const emailInput = document.getElementById('login-email');
     const passwordInput = document.getElementById('login-password');
 
-    if (errorContainer) errorContainer.classList.remove('show');
+    if (errorContainer) {
+      errorContainer.innerText = '';
+      errorContainer.classList.remove('show');
+    }
 
     const email = emailInput ? emailInput.value.trim() : '';
     const password = passwordInput ? passwordInput.value : '';
@@ -56,8 +61,9 @@ export const AuthModule = {
       await this.login(email, password, this.selectedRol);
       window.location.href = '../dashboard/dashboard.html';
     } catch (err) {
+      console.error("Error capturado en Login:", err); // Para depurar en consola F12
       if (errorContainer) {
-        errorContainer.innerText = err.message;
+        errorContainer.innerText = err.message || 'Error al intentar iniciar sesión.';
         errorContainer.classList.add('show');
       }
     }
@@ -98,3 +104,5 @@ export const AuthModule = {
     window.location.href = '../auth/login.html';
   }
 };
+
+export default AuthModule;

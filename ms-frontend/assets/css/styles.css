@@ -604,3 +604,21 @@ th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eef0f5; font
   border-radius: 50%;
   border: 2px solid #ffffff;
 }
+
+/* Estilo para la caja de error del Login */
+.alert-error-box {
+  display: none;
+  color: #991b1b;
+  background-color: #fee2e2;
+  border: 1px solid #fca5a5;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 15px;
+  word-break: break-word;
+}
+
+/* Fuerza la visibilidad cuando se activa */
+.alert-error-box.show {
+  display: block !important;
+}
