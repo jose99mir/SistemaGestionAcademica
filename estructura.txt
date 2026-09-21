@@ -1,0 +1,135 @@
+.
+├── README.md
+├── docker-compose.yml
+├── estructura.txt
+├── init.sql
+├── ms-academico
+│   ├── Dockerfile
+│   ├── config
+│   │   └── database.js
+│   ├── controllers
+│   │   ├── academicoController.js
+│   │   ├── asignaturasController.js
+│   │   ├── matriculaController.js
+│   │   ├── notaController.js
+│   │   ├── periodoController.js
+│   │   └── programaController.js
+│   ├── index.js
+│   ├── models
+│   │   ├── academicoModel.js
+│   │   ├── asignatura.model.js
+│   │   ├── matriculaModel.js
+│   │   ├── notaModel.js
+│   │   ├── periodoModel.js
+│   │   └── programaModel.js
+│   ├── package.json
+│   └── routes
+│       └── academicoRoutes.js
+├── ms-auth
+│   ├── Dockerfile
+│   ├── config
+│   │   └── database.js
+│   ├── controllers
+│   │   ├── authController.js
+│   │   └── userController.js
+│   ├── index.js
+│   ├── models
+│   │   └── userModel.js
+│   ├── package.json
+│   └── routes
+│       └── authRoutes.js
+├── ms-frontend
+│   ├── Dockerfile
+│   ├── assets
+│   │   ├── css
+│   │   │   ├── all.min.css
+│   │   │   ├── bootstrap.min.css
+│   │   │   └── styles.css
+│   │   ├── img
+│   │   │   └── svgs
+│   │   │       ├── brands
+│   │   │       │   └── iconos...
+│   │   │       ├── regular
+│   │   │       │   └── iconos...
+│   │   │       └── solid
+│   │   │           └── iconos...
+│   │   ├── js
+│   │   │   └── bootstrap.bundle.min.js
+│   │   └── webfonts
+│   │       ├── fa-brands-400.woff2
+│   │       ├── fa-regular-400.woff2
+│   │       ├── fa-solid-900.woff2
+│   │       └── fa-v4compatibility.woff2
+│   ├── index.html
+│   ├── js
+│   │   ├── main.js
+│   │   └── modules
+│   │       ├── academico.module.js
+│   │       ├── asignaturas.module.js
+│   │       ├── auth.module.js
+│   │       ├── dashboard.module.js
+│   │       ├── matriculas.module.js
+│   │       ├── notas.module.js
+│   │       ├── pagination.component.js
+│   │       ├── periodos.module.js
+│   │       ├── programas.module.js
+│   │       ├── soporte.module.js
+│   │       └── users.module.js
+│   ├── nginx.conf
+│   └── views
+│       ├── admin
+│       │   ├── asignaturas.html
+│       │   ├── matriculas.html
+│       │   ├── notas.html
+│       │   ├── periodos.html
+│       │   ├── programas.html
+│       │   └── usuarios.html
+│       ├── auth
+│       │   └── login.html
+│       ├── dashboard
+│       │   └── dashboard.html
+│       └── soporte
+│           └── soporte.html
+├── ms-gateway
+│   ├── Dockerfile
+│   ├── index.js
+│   └── package.json
+├── ms-notas
+│   ├── Dockerfile
+│   ├── config
+│   │   └── database.js
+│   ├── controllers
+│   │   └── notaController.js
+│   ├── index.js
+│   ├── models
+│   │   └── notaModel.js
+│   ├── package.json
+│   └── routes
+│       └── notaRoutes.js
+├── ms-soporte
+│   ├── Dockerfile
+│   ├── config
+│   │   └── database.js
+│   ├── controllers
+│   │   └── soporteController.js
+│   ├── index.js
+│   ├── models
+│   │   └── soporteModel.js
+│   ├── package.json
+│   └── routes
+│       └── soporteRoutes.js
+├── ms-usuarios
+│   ├── Dockerfile
+│   ├── config
+│   │   └── database.js
+│   ├── controllers
+│   │   └── userController.js
+│   ├── index.js
+│   ├── models
+│   │   └── userModel.js
+│   ├── package.json
+│   └── routes
+│       └── userRoutes.js
+└── nginx
+
+45 directories, 2968 files

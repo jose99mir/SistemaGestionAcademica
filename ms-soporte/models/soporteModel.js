@@ -1,67 +1,74 @@
 /**
- * @file Soporte Model - ms-soporte
- * @description Operaciones en base de datos para solicitudes de PQRS.
- * @iso ISO/IEC 27001 - Trazabilidad e Integridad de la Información
+ * @file soporteModel.js
+ * @description Consultas MySQL para el microservicio ms-soporte.
  */
 
-const pool = require("../config/database");
+const db = require("../config/database"); // Ajusta el path a tu conexion MySQL / Pool
 
-class SoporteModel {
-  /**
-   * Crea una nueva solicitud PQRS
-   */
-  static async createPqrs({ usuario_id, tipo, asunto, descripcion }) {
-    const query = `
-      INSERT INTO pqrs (usuario_id, tipo, asunto, descripcion, estado)
-      VALUES (?, ?, ?, ?, 'PENDIENTE')
-    `;
-    const [result] = await pool.execute(query, [usuario_id, tipo, asunto, descripcion]);
-    return result.insertId;
-  }
-
-  /**
-   * Obtiene la lista completa de solicitudes (uso Administrativo)
-   */
-  static async findAll() {
-    const query = `
+const SoporteModel = {
+  async getAll() {
+    const sql = `
       SELECT 
-        p.id, p.tipo, p.asunto, p.descripcion, p.estado, p.respuesta, p.creado_en,
-        u.nombre AS usuario_nombre, u.email AS usuario_email, u.rol AS usuario_rol
+        p.id,
+        p.usuario_id,
+        p.tipo,
+        p.asunto,
+        p.descripcion,
+        p.estado,
+        COALESCE(p.respuesta, '') AS respuesta,
+        p.creado_en,
+        COALESCE(u.documento, 'N/A') AS remitente,
+        COALESCE(u.rol, 'ESTUDIANTE') AS usuarioRol
       FROM pqrs p
-      INNER JOIN usuarios u ON p.usuario_id = u.id
-      ORDER BY p.creado_en DESC
+      LEFT JOIN usuarios u ON p.usuario_id = u.id
+      ORDER BY p.id DESC
     `;
-    const [rows] = await pool.execute(query);
+    const [rows] = await db.query(sql);
     return rows;
-  }
+  },
 
-  /**
-   * Obtiene las solicitudes de un usuario específico
-   * @param {number} usuarioId 
-   */
-  static async findByUsuario(usuarioId) {
-    const query = `
-      SELECT id, tipo, asunto, descripcion, estado, respuesta, creado_en
-      FROM pqrs
-      WHERE usuario_id = ?
-      ORDER BY creado_en DESC
+  async getByUsuario(usuarioId) {
+    const sql = `
+      SELECT 
+        p.id,
+        p.usuario_id,
+        p.tipo,
+        p.asunto,
+        p.descripcion,
+        p.estado,
+        COALESCE(p.respuesta, '') AS respuesta,
+        p.creado_en,
+        COALESCE(u.documento, 'N/A') AS remitente,
+        COALESCE(u.rol, 'ESTUDIANTE') AS usuarioRol
+      FROM pqrs p
+      LEFT JOIN usuarios u ON p.usuario_id = u.id
+      WHERE p.usuario_id = ?
+      ORDER BY p.id DESC
     `;
-    const [rows] = await pool.execute(query, [usuarioId]);
+    const [rows] = await db.query(sql, [usuarioId]);
     return rows;
-  }
+  },
 
-  /**
-   * Responde y actualiza el estado de una PQRS
-   */
-  static async responderPqrs(id, { estado, respuesta }) {
-    const query = `
-      UPDATE pqrs 
-      SET estado = ?, respuesta = ?
-      WHERE id = ?
+  async crear(tipo, asunto, descripcion, usuarioId) {
+    const sql = `
+      INSERT INTO pqrs (tipo, asunto, descripcion, usuario_id, estado, creado_en)
+      VALUES (?, ?, ?, ?, 'PENDIENTE', NOW())
     `;
-    const [result] = await pool.execute(query, [estado || 'RESUELTO', respuesta, id]);
+    const [result] = await db.query(sql, [tipo, asunto, descripcion, usuarioId]);
+    return result.insertId;
+  },
+
+  async responder(id, respuesta) {
+    const sql = `UPDATE pqrs SET respuesta = ?, estado = 'RESUELTO' WHERE id = ?`;
+    const [result] = await db.query(sql, [respuesta, id]);
+    return result.affectedRows > 0;
+  },
+
+  async eliminar(id) {
+    const sql = `DELETE FROM pqrs WHERE id = ?`;
+    const [result] = await db.query(sql, [id]);
     return result.affectedRows > 0;
   }
-}
+};
 
 module.exports = SoporteModel;

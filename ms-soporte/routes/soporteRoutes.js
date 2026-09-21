@@ -1,16 +1,26 @@
 /**
- * @file Soporte Routes - ms-soporte
- * @description Mapeo de rutas HTTP para la gestión de PQRS.
+ * @file soporteRoutes.js
+ * @description Definición de rutas del microservicio ms-soporte.
  */
 
 const express = require("express");
-const SoporteController = require("../controllers/soporteController");
-
 const router = express.Router();
 
-router.post("/", SoporteController.registrarPqrs);
-router.get("/", SoporteController.listAll);
-router.get("/usuario/:usuario_id", SoporteController.getByUsuario);
-router.put("/:id/responder", SoporteController.responder);
+const SoporteController = require("../controllers/soporteController");
+
+const getHandler = (controller, method) => {
+  if (controller && typeof controller[method] === "function") {
+    return controller[method];
+  }
+  return (req, res) => {
+    res.status(501).json({ mensaje: `El método '${method}' no está implementado.` });
+  };
+};
+
+router.get("/todos", getHandler(SoporteController, "getAll"));
+router.get("/usuario/:usuarioId", getHandler(SoporteController, "getByUsuario"));
+router.post("/", getHandler(SoporteController, "crear"));
+router.put("/responder/:id", getHandler(SoporteController, "responder"));
+router.delete("/:id", getHandler(SoporteController, "eliminar"));
 
 module.exports = router;

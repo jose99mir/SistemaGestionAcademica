@@ -9,6 +9,7 @@ USE portal_academico;
 -- 1. TABLA: usuarios
 CREATE TABLE IF NOT EXISTS usuarios (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  tipo_documento ENUM('CC', 'TI', 'CE', 'PASAPORTE') NOT NULL DEFAULT 'CC',
   documento VARCHAR(20) NOT NULL UNIQUE,
   nombre VARCHAR(100) NOT NULL,
   email VARCHAR(100) NOT NULL UNIQUE,

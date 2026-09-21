@@ -12,7 +12,12 @@ app.use(cors());
 app.use(express.json());
 
 const SERVICIO = "ms-notas";
-const PORT = process.env.PORT || 3005;
+
+if (!process.env.PORT) {
+  throw new Error("ERROR FATAL: La variable de entorno PORT no está definida.");
+}
+
+const PORT = parseInt(process.env.PORT, 10);
 
 let avgResponseTime = 0;
 let totalRequests = 0;

@@ -8,11 +8,17 @@ const cors = require("cors");
 const soporteRoutes = require("./routes/soporteRoutes");
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
 const SERVICIO = "ms-soporte";
-const PORT = process.env.PORT || 3007;
+
+if (!process.env.PORT) {
+  throw new Error("ERROR FATAL: La variable de entorno PORT no está definida.");
+}
+
+const PORT = parseInt(process.env.PORT, 10);
 
 let avgResponseTime = 0;
 let totalRequests = 0;
@@ -29,6 +35,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// COMPATIBILIDAD CON PROXY/API GATEWAY:
+// Soporta peticiones directas / como peticiones enrutadas /api/soporte
+app.use("/api/soporte", soporteRoutes);
 app.use("/", soporteRoutes);
 
 app.get("/health", (req, res) => {

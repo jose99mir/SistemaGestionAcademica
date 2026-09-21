@@ -4,11 +4,8 @@ services:
     image: mysql:8.0
     container_name: mysql
     restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+    env_file:
+      - .env
     ports:
       - "${DB_PORT}:3306"
     volumes:
@@ -22,14 +19,10 @@ services:
     build: ./ms-auth
     container_name: ms-auth
     restart: always
+    env_file:
+      - .env
     environment:
-      - DB_HOST=${DB_HOST}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
       - PORT=${PORT_AUTH}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES=${JWT_EXPIRES}
     depends_on:
       - mysql
     networks:
@@ -40,11 +33,9 @@ services:
     build: ./ms-usuarios
     container_name: ms-usuarios
     restart: always
+    env_file:
+      - .env
     environment:
-      - DB_HOST=${DB_HOST}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
       - PORT=${PORT_USUARIOS}
     depends_on:
       - mysql
@@ -56,11 +47,9 @@ services:
     build: ./ms-academico
     container_name: ms-academico
     restart: always
+    env_file:
+      - .env
     environment:
-      - DB_HOST=${DB_HOST}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
       - PORT=${PORT_ACADEMICO}
     depends_on:
       - mysql
@@ -72,11 +61,9 @@ services:
     build: ./ms-notas
     container_name: ms-notas
     restart: always
+    env_file:
+      - .env
     environment:
-      - DB_HOST=${DB_HOST}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
       - PORT=${PORT_NOTAS}
     depends_on:
       - mysql
@@ -88,11 +75,9 @@ services:
     build: ./ms-soporte
     container_name: ms-soporte
     restart: always
+    env_file:
+      - .env
     environment:
-      - DB_HOST=${DB_HOST}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
       - PORT=${PORT_SOPORTE}
     depends_on:
       - mysql
@@ -104,9 +89,12 @@ services:
     build: ./ms-gateway
     container_name: ms-gateway
     restart: always
+    env_file:
+      - .env
     ports:
       - "${PORT_GATEWAY}:8080"
     environment:
+      - PORT=8080
       - MS_AUTH_URL=http://ms-auth:${PORT_AUTH}
       - MS_USUARIOS_URL=http://ms-usuarios:${PORT_USUARIOS}
       - MS_ACADEMICO_URL=http://ms-academico:${PORT_ACADEMICO}
@@ -133,12 +121,10 @@ services:
     networks:
       - notas_net
 
-# Declaración explícita de volúmenes con nombre
 volumes:
   mysql_data:
     name: portal_notas_mysql_data
 
-# Declaración de la red compartida
 networks:
   notas_net:
     driver: bridge
