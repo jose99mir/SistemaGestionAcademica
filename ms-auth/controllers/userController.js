@@ -5,7 +5,7 @@
  */
 
 const bcrypt = require("bcryptjs");
-const UserModel = require("../models/userModel");
+const UserModel = require("../models/authModel");
 
 class UserController {
   static async list(req, res) {

@@ -15,21 +15,38 @@ if (!process.env.PORT) {
   throw new Error("ERROR FATAL: La variable de entorno PORT no está definida.");
 }
 
+// Validasion dagiti variables ti entorno para kadagiti microservicios
+const requiredEnvVars = [
+  "MS_AUTH_URL",
+  "MS_USUARIOS_URL",
+  "MS_ACADEMICO_URL",
+  "MS_NOTAS_URL",
+  "MS_SOPORTE_URL"
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    throw new Error(`ERROR FATAL: La variable de entorno ${envVar} no está definida.`);
+  }
+}
+
 const PORT = parseInt(process.env.PORT, 10);
 
 app.use(cors());
 
-// Mapeo de microservicios backend
+// Mapeo ti microservicios backend a diretso a mangal-ala kadagiti variables
 const services = {
-  "/api/auth": process.env.MS_AUTH_URL || "http://ms-auth:3006",
-  "/api/usuarios": process.env.MS_USUARIOS_URL || "http://ms-usuarios:3001",
-  "/api/academico": process.env.MS_ACADEMICO_URL || "http://ms-academico:3002",
-  "/api/notas": process.env.MS_NOTAS_URL || "http://ms-notas:3005",
-  "/api/soporte": process.env.MS_SOPORTE_URL || "http://ms-soporte:3007"
+  "/api/auth": process.env.MS_AUTH_URL,
+  "/api/usuarios": process.env.MS_USUARIOS_URL,
+  "/api/academico": process.env.MS_ACADEMICO_URL,
+  "/api/notas": process.env.MS_NOTAS_URL,
+  "/api/soporte": process.env.MS_SOPORTE_URL
 };
 
-// Configuración de proxies dinámicos
+// Configuración ti proxies dinámicos
 Object.entries(services).forEach(([path, target]) => {
+  console.log(`[ms-gateway] Enrutando ${path} -> ${target}`);
+
   app.use(
     path,
     createProxyMiddleware({
@@ -47,11 +64,11 @@ Object.entries(services).forEach(([path, target]) => {
   );
 });
 
-// Health check global del API Gateway
+// Health check global ti API Gateway
 app.get("/health", (req, res) => {
   res.json({
     gateway: "ok",
-    servicios_mapeados: Object.keys(services),
+    servicios_mapeados: services,
     timestamp: new Date()
   });
 });

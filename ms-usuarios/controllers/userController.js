@@ -8,97 +8,91 @@ const bcrypt = require("bcryptjs");
 const UserModel = require("../models/userModel");
 
 class UserController {
-  /**
-   * Lista todos los usuarios
-   */
-  static async getAll(req, res) {
+  static async list(req, res) {
     try {
-      const users = await UserModel.findAll();
-      return res.json(users);
-    } catch (err) {
-      return res.status(500).json({ error: "Error al consultar usuarios", detalle: err.message });
+      const users = await UserModel.getAllUsers();
+      const roles = await UserModel.getAllRoles();
+      return res.json({ users, roles });
+    } catch (error) {
+      console.error("--> [ms-auth LIST USERS ERROR]:", error);
+      return res.status(500).json({ error: "Error al listar usuarios", detalle: error.message });
     }
   }
 
-  /**
-   * Obtiene un usuario por ID
-   */
-  static async getById(req, res) {
-    try {
-      const user = await UserModel.findById(req.params.id);
-      if (!user) {
-        return res.status(404).json({ error: "Usuario no encontrado" });
-      }
-      return res.json(user);
-    } catch (err) {
-      return res.status(500).json({ error: "Error al consultar usuario", detalle: err.message });
-    }
-  }
-
-  /**
-   * Registra o crea un nuevo usuario cifrando su contraseña
-   */
   static async create(req, res) {
-    const { nombre, email, rol, password } = req.body || {};
-
-    if (!nombre || !email || !rol) {
-      return res.status(400).json({ error: "Campos requeridos: nombre, email, rol" });
-    }
-
     try {
-      const rawPassword = password || "123456";
-      const password_hash = await bcrypt.hash(rawPassword, 10);
+      const { tipo_documento, documento, nombre, email, password, roles } = req.body || {};
 
-      const insertId = await UserModel.create({
-        nombre,
-        email: email.toLowerCase(),
-        rol,
-        password_hash
-      });
+      if (!documento || !nombre || !email || !password) {
+        return res.status(400).json({ error: "Tipo de documento, documento, nombre, email y contraseña son obligatorios" });
+      }
 
-      return res.status(201).json({
-        id: insertId,
-        nombre,
-        email: email.toLowerCase(),
-        rol,
-        mensaje: "Usuario creado exitosamente"
-      });
-    } catch (err) {
-      return res.status(500).json({ error: "Error al crear usuario", detalle: err.message });
+      const existingDoc = await UserModel.findByDocumento(documento.trim());
+      if (existingDoc) {
+        return res.status(400).json({ error: "El número de documento ya se encuentra registrado" });
+      }
+
+      const existingUser = await UserModel.findByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "El correo electrónico ya se encuentra registrado" });
+      }
+
+      const tipoDocValido = ['CC', 'TI', 'CE', 'PASAPORTE'].includes(tipo_documento) ? tipo_documento : 'CC';
+      const hash = await bcrypt.hash(password, 10);
+      
+      await UserModel.createUser(tipoDocValido, documento.trim(), nombre.trim(), email.trim().toLowerCase(), hash, roles);
+
+      return res.json({ mensaje: "Usuario creado correctamente" });
+    } catch (error) {
+      console.error("--> [ms-auth CREATE USER ERROR]:", error);
+      return res.status(500).json({ error: "Error al crear usuario", detalle: error.message });
     }
   }
 
-  /**
-   * Actualiza datos de un usuario existente
-   */
   static async update(req, res) {
-    const id = req.params.id;
-    const { nombre, email, rol, activo } = req.body || {};
-
     try {
-      const updated = await UserModel.update(id, { nombre, email, rol, activo });
-      if (!updated) {
-        return res.status(404).json({ error: "Usuario no encontrado o sin cambios" });
+      const { id } = req.params;
+      const { tipo_documento, documento, nombre, email, password, activo, roles } = req.body || {};
+
+      // 1. Actualización exclusiva de contraseña
+      if (password && !nombre && !email) {
+        if (password.trim().length < 6) {
+          return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres" });
+        }
+        const passwordHash = await bcrypt.hash(password.trim(), 10);
+        await UserModel.updatePasswordOnly(id, passwordHash);
+        return res.json({ mensaje: "Contraseña actualizada correctamente" });
       }
+
+      // 2. Actualización de datos del perfil
+      if (!documento || !nombre || !email) {
+        return res.status(400).json({ error: "Documento, nombre y email son obligatorios" });
+      }
+
+      let passwordHash = null;
+      if (password && password.trim().length > 0) {
+        passwordHash = await bcrypt.hash(password.trim(), 10);
+      }
+
+      const tipoDocValido = ['CC', 'TI', 'CE', 'PASAPORTE'].includes(tipo_documento) ? tipo_documento : 'CC';
+
+      await UserModel.updateUser(id, tipoDocValido, documento.trim(), nombre.trim(), email.trim().toLowerCase(), passwordHash, activo, roles);
       return res.json({ mensaje: "Usuario actualizado correctamente" });
-    } catch (err) {
-      return res.status(500).json({ error: "Error al actualizar usuario", detalle: err.message });
+
+    } catch (error) {
+      console.error("--> [ms-auth UPDATE USER ERROR]:", error);
+      return res.status(500).json({ error: "Error al actualizar usuario", detalle: error.message });
     }
   }
 
-  /**
-   * Elimina un usuario
-   */
   static async delete(req, res) {
-    const id = req.params.id;
     try {
-      const deleted = await UserModel.delete(id);
-      if (!deleted) {
-        return res.status(404).json({ error: "Usuario no encontrado" });
-      }
+      const { id } = req.params;
+      await UserModel.deleteUser(id);
       return res.json({ mensaje: "Usuario eliminado correctamente" });
-    } catch (err) {
-      return res.status(500).json({ error: "Error al eliminar usuario", detalle: err.message });
+    } catch (error) {
+      console.error("--> [ms-auth DELETE USER ERROR]:", error);
+      return res.status(500).json({ error: "Error al eliminar usuario", detalle: error.message });
     }
   }
 }

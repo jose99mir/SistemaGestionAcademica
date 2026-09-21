@@ -6,7 +6,7 @@
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const UserModel = require("../models/userModel");
+const AuthModel = require("../models/authModel");
 
 class AuthController {
   static async login(req, res) {
@@ -21,10 +21,10 @@ class AuthController {
       const cleanPassword = String(password).trim();
       const cleanRol = String(rol).trim();
 
-      const user = await UserModel.findByEmailAndRole(cleanEmail, cleanRol);
+      const user = await AuthModel.findByEmailAndRole(cleanEmail, cleanRol);
 
       if (!user) {
-        const usuarioExiste = await UserModel.findByEmail(cleanEmail);
+        const usuarioExiste = await AuthModel.findByEmail(cleanEmail);
         if (usuarioExiste) {
           return res.status(401).json({ error: `El usuario existe pero no tiene asignado el rol de ${cleanRol}` });
         }

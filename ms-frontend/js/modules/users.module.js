@@ -56,7 +56,7 @@ export const UsersModule = {
 
   // --- PETICIONES HTTP ---
   async getUsers() {
-    const res = await fetch('/api/auth/users', {
+    const res = await fetch('/api/usuarios/users', {
       headers: { 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}` 
@@ -68,7 +68,7 @@ export const UsersModule = {
   },
 
   async createUser(userData) {
-    const res = await fetch('/api/auth/users', {
+    const res = await fetch('/api/usuarios/users', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ export const UsersModule = {
   },
 
   async updateUser(id, userData) {
-    const res = await fetch(`/api/auth/users/${id}`, {
+    const res = await fetch(`/api/usuarios/users/${id}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ export const UsersModule = {
   },
 
   async updateUserPassword(id, password) {
-    const res = await fetch(`/api/auth/users/${id}`, {
+    const res = await fetch(`/api/usuarios/users/${id}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -110,7 +110,7 @@ export const UsersModule = {
   },
 
   async deleteUser(id) {
-    const res = await fetch(`/api/auth/users/${id}`, {
+    const res = await fetch(`/api/usuarios/users/${id}`, {
       method: 'DELETE',
       headers: { 
         'Content-Type': 'application/json',
