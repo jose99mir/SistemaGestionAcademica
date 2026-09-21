@@ -11,6 +11,7 @@ const PeriodoController = require("../controllers/periodoController");
 const AcademicoController = require("../controllers/academicoController");
 const AsignaturasController = require("../controllers/asignaturasController");
 const MatriculaController = require("../controllers/matriculaController");
+const NotaController = require("../controllers/notaController");
 
 const getHandler = (controller, method) => {
   if (controller && typeof controller[method] === "function") {
@@ -48,5 +49,14 @@ router.get("/matriculas", getHandler(MatriculaController, "getAll"));
 router.get("/matriculas/estudiantes/buscar", getHandler(MatriculaController, "buscarEstudiantes"));
 router.get("/matriculas/detalle/:materiaId/:periodoId", getHandler(MatriculaController, "getDetalle"));
 router.post("/matriculas/guardar", getHandler(MatriculaController, "guardarMatriculas"));
+
+// --- RUTAS DEL MÓDULO DE NOTAS ---
+router.get("/notas/docente/materias", getHandler(NotaController, "getMateriasDocente"));
+router.get("/notas/docente/planilla/:materiaId/:periodoId", getHandler(NotaController, "getEstudiantesConNotas"));
+router.post("/notas/docente/guardar", getHandler(NotaController, "guardarNotas"));
+router.get("/notas/estudiante", getHandler(NotaController, "getNotasEstudiante"));
+// Rutas exclusivas del Estudiante
+router.get("/notas/estudiante/periodos", getHandler(NotaController, "getPeriodosEstudiante"));
+
 
 module.exports = router;

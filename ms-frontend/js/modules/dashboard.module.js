@@ -10,20 +10,21 @@ import { UsersModule } from './users.module.js';
 import { ProgramasModule } from './programas.module.js';
 import { PeriodosModule } from './periodos.module.js';
 import { AsignaturasModule } from './asignaturas.module.js';
-import MatriculasModule from './matriculas.module.js';
+import { MatriculasModule } from './matriculas.module.js';
+ import { NotasModule } from './notas.module.js';
 
 export const DashboardModule = {
   configMenus: {
     ESTUDIANTE: [
       { id: 'dashboard', label: 'Panel Principal', icon: 'fa-gauge-high' },
       { id: 'materias', label: 'Mis Materias', icon: 'fa-book' },
-      { id: 'calificaciones', label: 'Calificaciones', icon: 'fa-clipboard-list' },
+      { id: 'notas', label: 'Calificaciones', icon: 'fa-clipboard-check' },
       { id: 'pqrs', label: 'Gestión PQRS / Tickets', icon: 'fa-life-ring' }
     ],
     PROFESOR: [
       { id: 'dashboard', label: 'Panel Docente', icon: 'fa-gauge-high' },
       { id: 'cursos', label: 'Mis Cursos', icon: 'fa-book' },
-      { id: 'calificar', label: 'Cargar Notas', icon: 'fa-clipboard-list' },
+      { id: 'notas', label: 'Cargar Notas', icon: 'fa-clipboard-list' },
       { id: 'pqrs', label: 'Soporte Técnico', icon: 'fa-life-ring' }
     ],
     ADMIN: [
@@ -33,6 +34,7 @@ export const DashboardModule = {
       { id: 'periodos', label: 'Periodos Académicos', icon: 'fa-calendar-days' },
       { id: 'materias', label: 'Gestión Asignaturas', icon: 'fa-book' },
       { id: 'matriculas', label: 'Matrículas', icon: 'fa-user-graduate' },
+      { id: 'notas', label: 'Calificaciones', icon: 'fa-clipboard-check' },
       { id: 'pqrs', label: 'Administrar Tickets PQRS', icon: 'fa-life-ring' }
     ]
   },
@@ -144,7 +146,28 @@ export const DashboardModule = {
        sub.innerText = 'Asignación de estudiantes a materias y periodos académicos';
        await this.renderModuloHtml(container, '../admin/matriculas.html', 'matriculas');
         if (MatriculasModule && typeof MatriculasModule.init === 'function') { await MatriculasModule.init(); }
-        break;
+      break;
+
+      case 'notas':
+      case 'calificaciones':
+      const userRole = user ? user.rol : '';
+    
+      if (userRole === 'ESTUDIANTE') {
+        title.innerText = 'Mi Historial Académico';
+        sub.innerText = 'Consulta de calificaciones por periodo y asignatura';
+      } else if (userRole === 'DOCENTE' || userRole === 'PROFESOR') {
+        title.innerText = 'Registro de Calificaciones';
+        sub.innerText = 'Planilla de notas para asignaturas a cargo';
+      } else {
+        title.innerText = 'Gestión Global de Calificaciones';
+        sub.innerText = 'Consulta y edición de notas de todas las asignaturas';
+      }
+
+      await this.renderModuloHtml(container, '../admin/notas.html', 'notas');
+    
+      if (NotasModule && typeof NotasModule.init === 'function') {await NotasModule.init();}
+      break;
+      
 
       case 'pqrs':
         title.innerText = 'Gestión de Tickets y PQRS';
