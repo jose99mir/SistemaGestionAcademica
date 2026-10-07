@@ -1,26 +1,16 @@
 /**
- * @file soporteRoutes.js
- * @description Definición de rutas del microservicio ms-soporte.
+ * @file Soporte Routes - ms-soporte
+ * @description Exposición de rutas REST del microservicio de soporte técnico y PQRS.
  */
 
 const express = require("express");
-const router = express.Router();
-
 const SoporteController = require("../controllers/soporteController");
 
-const getHandler = (controller, method) => {
-  if (controller && typeof controller[method] === "function") {
-    return controller[method];
-  }
-  return (req, res) => {
-    res.status(501).json({ mensaje: `El método '${method}' no está implementado.` });
-  };
-};
+const router = express.Router();
 
-router.get("/todos", getHandler(SoporteController, "getAll"));
-router.get("/usuario/:usuarioId", getHandler(SoporteController, "getByUsuario"));
-router.post("/", getHandler(SoporteController, "crear"));
-router.put("/responder/:id", getHandler(SoporteController, "responder"));
-router.delete("/:id", getHandler(SoporteController, "eliminar"));
+router.get("/", SoporteController.getPqrs);
+router.post("/", SoporteController.createPqr);
+router.put("/:id/responder", SoporteController.responderPqr);
+router.delete("/:id", SoporteController.deletePqr);
 
 module.exports = router;

@@ -1,14 +1,16 @@
 {
   "name": "ms-soporte",
   "version": "1.0.0",
-  "description": "Microservicio de PQRS y Soporte Academico",
+  "description": "Microservicio de Soporte y PQRS - Portal Académico",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "mysql2": "^3.6.0"
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.9.7"
   }
 }

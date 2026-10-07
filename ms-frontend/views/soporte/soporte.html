@@ -1,100 +1,123 @@
-<div class="soporte-view-container" style="padding: 24px; font-family: system-ui, -apple-system, sans-serif;">
+<div class="card">
+  <div class="header-action">
+    <div>
+      <h3 style="margin: 0;">Soporte Técnico y PQRS</h3>
+      <p style="margin: 5px 0 0 0; color: var(--muted); font-size: 0.9rem;">
+        Gestión de Peticiones, Quejas, Reclamos y Sugerencias.
+      </p>
+    </div>
+    <button id="btn-open-create-pqr" class="btn-navy" style="width: auto;">
+      <i class="fa-solid fa-plus"></i> Nueva PQR
+    </button>
+  </div>
 
-  <!-- Formulario para Radicar Solicitud -->
-  <div class="card" style="background: #ffffff; padding: 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
-    <h3 style="margin-top: 0; color: #0f172a; font-size: 1.25rem; font-weight: 600; margin-bottom: 16px;">Radicar Nueva Solicitud</h3>
+  <div id="soporte-main-alert" class="alert-box alert-error" style="display: none; margin-bottom: 15px;"></div>
+
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Documento</th>
+          <th>Tipo</th>
+          <th>Asunto</th>
+          <th>Fecha</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="pqr-table-body">
+        <!-- JS Dynamic Data -->
+      </tbody>
+    </table>
+    <div id="pqr-pagination" class="pagination-wrapper"></div>
+  </div>
+</div>
+
+<!-- Modal Registrar PQR -->
+<div id="createPqrModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <h3>Nueva PQR</h3>
+    <div id="create-pqr-alert" class="alert-box alert-error" style="display: none; margin-bottom: 15px;"></div>
     
-    <form id="formPqrs">
-      <input type="hidden" id="pqrs-id">
-
-      <div class="field" style="margin-bottom: 14px;">
-        <label for="pqrs-tipo" style="display: block; font-weight: 600; margin-bottom: 6px; color: #334155; font-size: 0.9rem;">Tipo de Solicitud</label>
-        <select id="pqrs-tipo" required class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background-color: #fff;">
-          <option value="PETICION">Petición</option>
-          <option value="QUEJA">Queja</option>
-          <option value="RECLAMO">Reclamo</option>
-          <option value="SUGERENCIA">Sugerencia</option>
+    <form id="createPqrForm">
+      <div class="field">
+        <label for="pqrTipo">Tipo</label>
+        <select id="pqrTipo" required>
+          <option value="PETICION">PETICION</option>
+          <option value="QUEJA">QUEJA</option>
+          <option value="RECLAMO">RECLAMO</option>
+          <option value="SUGERENCIA">SUGERENCIA</option>
         </select>
       </div>
 
-      <div class="field" style="margin-bottom: 14px;">
-        <label for="pqrs-asunto" style="display: block; font-weight: 600; margin-bottom: 6px; color: #334155; font-size: 0.9rem;">Asunto</label>
-        <input type="text" id="pqrs-asunto" required placeholder="Escribe el asunto de tu solicitud" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; box-sizing: border-box;">
+      <div class="field">
+        <label for="pqrAsunto">Asunto</label>
+        <input type="text" id="pqrAsunto" required placeholder="Escribe el asunto del requerimiento">
       </div>
 
-      <div class="field" style="margin-bottom: 20px;">
-        <label for="pqrs-desc" style="display: block; font-weight: 600; margin-bottom: 6px; color: #334155; font-size: 0.9rem;">Descripción</label>
-        <textarea id="pqrs-desc" required placeholder="Detalla los motivos de tu solicitud..." class="form-control" rows="4" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; resize: vertical; box-sizing: border-box;"></textarea>
+      <div class="field">
+        <label for="pqrDescripcion">Descripción</label>
+        <textarea id="pqrDescripcion" rows="4" style="width: 100%; border-radius: 8px; border: 1px solid #d1d5db; padding: 8px;" required placeholder="Detalla tu requerimiento..."></textarea>
       </div>
 
-      <button type="submit" class="btn-navy" style="background: #0f172a; color: #ffffff; padding: 10px 24px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: background 0.2s;">
-        Guardar Ticket
-      </button>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+        <button type="button" id="btn-close-create-modal" class="btn-navy" style="background: var(--muted, #6b7280);">Cancelar</button>
+        <button type="submit" class="btn-navy">Enviar PQR</button>
+      </div>
     </form>
   </div>
+</div>
 
-  <!-- Listado de PQRS -->
-  <div class="card" style="background: #ffffff; padding: 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-    <h3 style="margin-top: 0; color: #0f172a; font-size: 1.25rem; font-weight: 600; margin-bottom: 16px;">Listado de Tickets</h3>
-    
-    <div style="overflow-x: auto;">
-      <table class="table" style="width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.9rem;">
-        <thead id="pqrs-table-head">
-          <tr style="border-bottom: 2px solid #e2e8f0; text-align: left; color: #475569;">
-            <th style="padding: 12px 10px;">ID</th>
-            <th style="padding: 12px 10px;">Tipo</th>
-            <th style="padding: 12px 10px;">Asunto</th>
-            <th style="padding: 12px 10px;">Descripción</th>
-            <th style="padding: 12px 10px;">Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="tabla-pqrs-body">
-          <tr>
-            <td colspan="5" style="text-align: center; padding: 24px; color: #64748b;">Cargando registros...</td>
-          </tr>
-        </tbody>
-      </table>
+<!-- Modal Ver / Responder PQR -->
+<div id="viewPqrModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <h3 id="viewPqrTitle">Detalle PQR</h3>
+    <div id="view-pqr-alert" class="alert-box alert-error" style="display: none; margin-bottom: 15px;"></div>
+
+    <div style="margin-bottom: 15px;">
+      <p style="margin: 0; font-weight: bold; color: var(--muted);">Usuario / Documento:</p>
+      <p id="viewPqrUser" style="margin: 2px 0 10px 0;"></p>
+
+      <p style="margin: 0; font-weight: bold; color: var(--muted);">Asunto:</p>
+      <p id="viewPqrAsunto" style="margin: 2px 0 10px 0;"></p>
+
+      <p style="margin: 0; font-weight: bold; color: var(--muted);">Descripción:</p>
+      <div id="viewPqrDescripcion" style="background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb; margin-top: 2px;"></div>
+    </div>
+
+    <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 15px 0;">
+
+    <!-- Modo lectura para Estudiante / Docente -->
+    <div id="userResponseContainer">
+      <p style="margin: 0; font-weight: bold; color: var(--muted);">Respuesta Institucional:</p>
+      <div id="viewPqrRespuesta" style="padding: 10px; border-radius: 6px; margin-top: 5px;"></div>
+    </div>
+
+    <!-- Modo administración para Admin -->
+    <div id="adminResponseFormContainer" style="display: none;">
+      <form id="adminResponseForm">
+        <input type="hidden" id="adminPqrId">
+        <div class="field">
+          <label for="adminRespuestaText">Respuesta de Soporte</label>
+          <textarea id="adminRespuestaText" rows="4" style="width: 100%; border-radius: 8px; border: 1px solid #d1d5db; padding: 8px;" required placeholder="Redactar la respuesta oficial..."></textarea>
+        </div>
+        <div class="field">
+          <label for="adminPqrEstado">Estado de la PQR</label>
+          <select id="adminPqrEstado">
+            <option value="RESUELTO">RESUELTO</option>
+            <option value="EN_PROCESO">EN_PROCESO</option>
+            <option value="RECHAZADO">RECHAZADO</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+          <button type="submit" class="btn-navy">Guardar Respuesta</button>
+        </div>
+      </form>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+      <button type="button" id="btn-close-view-modal" class="btn-navy" style="background: var(--muted, #6b7280);">Cerrar</button>
     </div>
   </div>
-
-  <!-- Modal para Ver Respuesta (Estudiantes / Docentes) -->
-  <div id="modalVerRespuesta" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); align-items: center; justify-content: center; z-index: 1000;">
-    <div style="background: #ffffff; width: 90%; max-width: 480px; padding: 24px; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
-      <h3 id="modal-asunto" style="margin-top: 0; color: #0f172a; font-size: 1.15rem; font-weight: 600;">Respuesta del Ticket</h3>
-      <p id="modal-texto" style="background: #f1f5f9; padding: 14px; border-radius: 6px; white-space: pre-wrap; color: #334155; font-size: 0.9rem; line-height: 1.5; min-height: 80px; margin-top: 14px; margin-bottom: 0;"></p>
-      <div style="text-align: right; margin-top: 20px;">
-        <button type="button" id="btnCerrarModal" class="btn-navy" style="padding: 8px 20px; background: #64748b; color: #ffffff; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
-          Cerrar
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal para Atender / Responder Ticket (Administradores) -->
-  <div id="modalResponderPqrs" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); align-items: center; justify-content: center; z-index: 1000;">
-    <div style="background: #ffffff; width: 90%; max-width: 500px; padding: 24px; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
-      <h3 style="margin-top: 0; color: #0f172a; font-size: 1.15rem; font-weight: 600; margin-bottom: 12px;">Atender Ticket #<span id="responderTicketIdLabel"></span></h3>
-      
-      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 6px;" id="responderUsuarioInfo">Remitente: -</p>
-      <p style="font-weight: 600; color: #1e293b; margin-bottom: 6px; font-size: 0.95rem;" id="responderAsuntoLabel">-</p>
-      <div id="responderDescripcionText" style="background: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.85rem; color: #475569; margin-bottom: 16px; max-height: 100px; overflow-y: auto;"></div>
-
-      <input type="hidden" id="responderTicketId">
-      
-      <div style="margin-bottom: 18px;">
-        <label for="responderInputTexto" style="display: block; font-weight: 600; margin-bottom: 6px; color: #334155; font-size: 0.85rem;">Redactar Respuesta:</label>
-        <textarea id="responderInputTexto" class="form-control" rows="4" placeholder="Escriba aquí la solución o respuesta oficial..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; box-sizing: border-box;"></textarea>
-      </div>
-
-      <div style="display: flex; gap: 10px; justify-content: flex-end;">
-        <button type="button" style="padding: 8px 18px; background: #94a3b8; color: #ffffff; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;" onclick="window.SoporteModule.closeModalResponder()">
-          Cancelar
-        </button>
-        <button type="button" style="padding: 8px 18px; background: #0f172a; color: #ffffff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="window.SoporteModule.guardarRespuestaAdmin()">
-          Enviar Respuesta
-        </button>
-      </div>
-    </div>
-  </div>
-
 </div>

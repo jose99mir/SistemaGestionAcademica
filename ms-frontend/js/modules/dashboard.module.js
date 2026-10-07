@@ -107,7 +107,7 @@ export const DashboardModule = {
 
       case 'usuarios':
         title.innerText = 'Gestión Global de Usuarios';
-        sub.innerText = 'Módulo CRUD conectado al microservicio ms-auth';
+        sub.innerText = 'Módulo para gestión de usuarios';
         await this.renderModuloHtml(container, '../usuarios/usuarios.html', 'usuarios');
         if (UsersModule && typeof UsersModule.init === 'function') {
           UsersModule.init();
@@ -116,7 +116,7 @@ export const DashboardModule = {
 
       case 'programas':
         title.innerText = 'Gestión de Programas Académicos';
-        sub.innerText = 'Módulo CRUD conectado al microservicio ms-academico';
+        sub.innerText = 'Módulo para gestión de programas académicos';
         await this.renderModuloHtml(container, '../admin/programas.html', 'programas');
         if (ProgramasModule && typeof ProgramasModule.init === 'function') {
           ProgramasModule.init();
@@ -125,7 +125,7 @@ export const DashboardModule = {
 
       case 'periodos':
         title.innerText = 'Gestión de Periodos Académicos';
-        sub.innerText = 'Módulo CRUD conectado al microservicio ms-academico';
+        sub.innerText = 'Módulo para gestión de periodos académicos';
         await this.renderModuloHtml(container, '../admin/periodos.html', 'periodos');
         if (PeriodosModule && typeof PeriodosModule.init === 'function') {
           PeriodosModule.init();
@@ -134,7 +134,7 @@ export const DashboardModule = {
 
       case 'materias':
         title.innerText = 'Gestión de Asignaturas';
-        sub.innerText = 'Módulo CRUD y carga docente conectado a ms-academico';
+        sub.innerText = 'Módulo para gestión de asignaturas';
         await this.renderModuloHtml(container, '../admin/asignaturas.html', 'asignaturas');
         requestAnimationFrame(() => {
           if (AsignaturasModule && typeof AsignaturasModule.init === 'function') { AsignaturasModule.init();}
@@ -171,14 +171,14 @@ export const DashboardModule = {
 
       case 'pqrs':
         title.innerText = 'Gestión de Tickets y PQRS';
-        sub.innerText = 'Módulo CRUD conectado a microservicio de soporte';
-        await this.renderModuloPqrs(container, user);
+        sub.innerText = 'Módulo para gestión Tickets y PQRS';
+        await this.renderModuloHtml(container, '../soporte/soporte.html', 'soporte');
+        requestAnimationFrame(() => {
+          if (SoporteModule && typeof SoporteModule.init === 'function') {
+            SoporteModule.init();
+          }
+        });
         break;
-
-      default:
-        title.innerText = 'Módulo en desarrollo';
-        sub.innerText = `Vista: ${vistaId}`;
-        container.innerHTML = `<div class="card"><p>Módulo para el rol ${user.rol} en construcción.</p></div>`;
     }
   },
 

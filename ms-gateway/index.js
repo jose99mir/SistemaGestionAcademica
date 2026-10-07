@@ -1,8 +1,6 @@
 /**
  * @file Index Principal - ms-gateway
- * @description Punto único de entrada (API Gateway) para el Portal Académico.
- * @iso ISO/IEC 25010 - Alta Disponibilidad y Mantenibilidad
- * @iso ISO/IEC 27001 - Control de Acceso Centralizado
+ * @description Punto único de entrada para el Portal Académico con forward de identidad.
  */
 
 const express = require("express");
@@ -15,7 +13,6 @@ if (!process.env.PORT) {
   throw new Error("ERROR FATAL: La variable de entorno PORT no está definida.");
 }
 
-// Validasion dagiti variables ti entorno para kadagiti microservicios
 const requiredEnvVars = [
   "MS_AUTH_URL",
   "MS_USUARIOS_URL",
@@ -34,7 +31,7 @@ const PORT = parseInt(process.env.PORT, 10);
 
 app.use(cors());
 
-// Mapeo ti microservicios backend a diretso a mangal-ala kadagiti variables
+// Mapeo de microservicios backend
 const services = {
   "/api/auth": process.env.MS_AUTH_URL,
   "/api/usuarios": process.env.MS_USUARIOS_URL,
@@ -43,7 +40,18 @@ const services = {
   "/api/soporte": process.env.MS_SOPORTE_URL
 };
 
-// Configuración ti proxies dinámicos
+// Función auxiliar para decodificar JWT sin librerías externas
+function parseJwtPayload(token) {
+  try {
+    const base64Payload = token.split(".")[1];
+    if (!base64Payload) return null;
+    const payloadBuffer = Buffer.from(base64Payload, "base64");
+    return JSON.parse(payloadBuffer.toString("utf-8"));
+  } catch (e) {
+    return null;
+  }
+}
+
 Object.entries(services).forEach(([path, target]) => {
   console.log(`[ms-gateway] Enrutando ${path} -> ${target}`);
 
@@ -53,6 +61,22 @@ Object.entries(services).forEach(([path, target]) => {
       target,
       changeOrigin: true,
       pathRewrite: (pathStr) => pathStr.replace(new RegExp(`^${path}`), ""),
+      onProxyReq: (proxyReq, req) => {
+        // Extrae el Token JWT del Header
+        const authHeader = req.headers["authorization"];
+        if (authHeader) {
+          const token = authHeader.split(" ")[1];
+          const decoded = parseJwtPayload(token);
+          if (decoded) {
+            const userId = decoded.id || decoded.usuario_id || decoded.sub;
+            const userRole = decoded.rol || decoded.role || "ESTUDIANTE";
+            
+            // Inyecta las cabeceras en la petición hacia el microservicio final
+            if (userId) proxyReq.setHeader("x-user-id", String(userId));
+            if (userRole) proxyReq.setHeader("x-user-role", String(userRole));
+          }
+        }
+      },
       onError: (err, req, res) => {
         console.error(`[Gateway Error] Fallo al redirigir ${path}:`, err.message);
         res.status(503).json({
@@ -64,7 +88,6 @@ Object.entries(services).forEach(([path, target]) => {
   );
 });
 
-// Health check global ti API Gateway
 app.get("/health", (req, res) => {
   res.json({
     gateway: "ok",

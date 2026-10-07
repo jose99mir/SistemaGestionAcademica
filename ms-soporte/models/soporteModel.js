@@ -1,11 +1,13 @@
 /**
  * @file soporteModel.js
+ * @location ms-soporte/models/soporteModel.js
  * @description Consultas MySQL para el microservicio ms-soporte.
  */
 
-const db = require("../config/database"); // Ajusta el path a tu conexion MySQL / Pool
+const db = require("../config/database");
 
 const SoporteModel = {
+  // --- MÉTODOS DE CONSULTA GENERAL ---
   async getAll() {
     const sql = `
       SELECT 
@@ -49,6 +51,7 @@ const SoporteModel = {
     return rows;
   },
 
+  // --- MÉTODOS DE MUTACIÓN ---
   async crear(tipo, asunto, descripcion, usuarioId) {
     const sql = `
       INSERT INTO pqrs (tipo, asunto, descripcion, usuario_id, estado, creado_en)
@@ -58,9 +61,9 @@ const SoporteModel = {
     return result.insertId;
   },
 
-  async responder(id, respuesta) {
-    const sql = `UPDATE pqrs SET respuesta = ?, estado = 'RESUELTO' WHERE id = ?`;
-    const [result] = await db.query(sql, [respuesta, id]);
+  async responder(id, respuesta, estado = 'RESUELTO') {
+    const sql = `UPDATE pqrs SET respuesta = ?, estado = ? WHERE id = ?`;
+    const [result] = await db.query(sql, [respuesta, estado, id]);
     return result.affectedRows > 0;
   },
 
@@ -68,6 +71,34 @@ const SoporteModel = {
     const sql = `DELETE FROM pqrs WHERE id = ?`;
     const [result] = await db.query(sql, [id]);
     return result.affectedRows > 0;
+  },
+
+  // =========================================================================
+  // ALIAS EN INGLÉS PARA COMPATIBILIDAD DIRECTA CON SOPORTECONTROLLER
+  // =========================================================================
+  async getAllPqrs() {
+    return this.getAll();
+  },
+
+  async getPqrsByUsuario(usuarioId) {
+    return this.getByUsuario(usuarioId);
+  },
+
+  async createPqr(usuarioId, tipo, asunto, descripcion) {
+    // Si viene ordenado (userId, tipo, asunto, descripcion)
+    if (typeof usuarioId === 'number' || typeof usuarioId === 'string') {
+      return this.crear(tipo, asunto, descripcion, usuarioId);
+    }
+    // Si vino (tipo, asunto, descripcion, userId)
+    return this.crear(usuarioId, tipo, asunto, descripcion);
+  },
+
+  async responderPqr(id, respuesta, estado = 'RESUELTO') {
+    return this.responder(id, respuesta, estado);
+  },
+
+  async deletePqr(id) {
+    return this.eliminar(id);
   }
 };
 

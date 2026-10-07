@@ -1,222 +1,264 @@
 /**
- * @file Soporte Module - Frontend
- * @description Módulo frontend de tickets y soporte.
+ * @file Soporte Module
+ * @location ms-frontend/js/modules/soporte.module.js
+ * @description Lógica del lado del cliente para cargar y gestionar las PQRS.
  */
 
-import { AuthModule } from './auth.module.js';
-
-const API_URL = '/api/soporte';
+import { PaginationHelper } from './pagination.component.js';
 
 export const SoporteModule = {
-  getUserData() {
-    const user = AuthModule.getUser() || {};
-    const id = user.id || user.usuario_id || user.id_usuario || null;
-    const rolRaw = user.rol || user.role || user.tipo || user.tipo_usuario || '';
-    const rol = String(rolRaw).trim().toUpperCase();
-    const isAdmin = (rol === 'ADMIN' || rol === 'ADMINISTRADOR');
+  pagination: null,
+  currentUserRole: null,
 
-    return { id, rol, isAdmin };
-  },
-
-  getHeaders() {
-    const { id, rol } = this.getUserData();
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${AuthModule.getToken()}`,
-      'x-user-role': rol,
-      'x-user-id': id || ''
-    };
-  },
-
-  async renderModuloPqrs(container) {
-    const { isAdmin } = this.getUserData();
-
-    if (container) {
-      container.innerHTML = `
-        <div class="card" style="margin-bottom: 20px;">
-          <h3>Radicar Nueva Solicitud</h3>
-          <form id="formPqrs">
-            <input type="hidden" id="pqrs-id">
-            <div class="field" style="margin-bottom: 12px;">
-              <label style="display:block; font-weight:600; margin-bottom:4px;">Tipo</label>
-              <select id="pqrs-tipo" required class="form-control" style="width: 100%; padding: 8px;">
-                <option value="PETICION">Petición</option>
-                <option value="QUEJA">Queja</option>
-                <option value="RECLAMO">Reclamo</option>
-                <option value="SUGERENCIA">Sugerencia</option>
-              </select>
-            </div>
-            <div class="field" style="margin-bottom: 12px;">
-              <label style="display:block; font-weight:600; margin-bottom:4px;">Asunto</label>
-              <input type="text" id="pqrs-asunto" required placeholder="Escribe el asunto" class="form-control" style="width: 100%; padding: 8px;">
-            </div>
-            <div class="field" style="margin-bottom: 15px;">
-              <label style="display:block; font-weight:600; margin-bottom:4px;">Descripción</label>
-              <textarea id="pqrs-desc" required placeholder="Detalle de la solicitud" class="form-control" rows="3" style="width: 100%; padding: 8px;"></textarea>
-            </div>
-            <button type="submit" class="btn-navy" style="background:#0f172a; color:#fff; padding: 10px 20px; border-radius:6px; border:none; cursor:pointer;">Guardar Ticket</button>
-          </form>
-        </div>
-
-        <div class="card">
-          <h3>Listado de Tickets</h3>
-          <table class="table" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-            <thead>
-              <tr style="border-bottom: 2px solid #e2e8f0; text-align: left;">
-                <th style="padding: 8px;">ID</th>
-                <th style="padding: 8px;">Tipo</th>
-                <th style="padding: 8px;">Asunto</th>
-                <th style="padding: 8px;">Descripción</th>
-                <th style="padding: 8px;">Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-pqrs-body">
-              <tr><td colspan="5" style="text-align:center; padding: 15px;">Cargando registros...</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Modal Ver Respuesta -->
-        <div id="modalVerRespuesta" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:1000;">
-          <div style="background:#fff; width:90%; max-width:450px; padding:20px; border-radius:8px;">
-            <h3 id="modal-asunto" style="margin-top:0; color:#0f172a;">Respuesta del Ticket</h3>
-            <p id="modal-texto" style="background:#f1f5f9; padding:12px; border-radius:6px; white-space:pre-wrap; color:#334155;"></p>
-            <div style="text-align:right; margin-top:15px;">
-              <button type="button" id="btnCerrarModal" class="btn-navy" style="padding:8px 16px; background:#64748b; color:#fff; border:none; border-radius:4px; cursor:pointer;">Cerrar</button>
-            </div>
-          </div>
-        </div>
-      `;
+  init() {
+    if (!this.pagination) {
+      this.pagination = new PaginationHelper({
+        containerId: 'pqr-pagination',
+        rowsPerPage: 5,
+        onPageChange: () => this.renderTable()
+      });
     }
 
     this.bindEvents();
-    await this.cargarTabla(container);
+    this.loadPqrs();
   },
 
   bindEvents() {
-    const formPqrs = document.getElementById('formPqrs');
-    if (formPqrs) {
-      formPqrs.onsubmit = async (e) => {
-        e.preventDefault();
-        await this.crearTicket();
-      };
-    }
+    document.getElementById('btn-open-create-pqr')?.addEventListener('click', () => this.openCreateModal());
+    document.getElementById('btn-close-create-modal')?.addEventListener('click', () => this.closeCreateModal());
+    document.getElementById('btn-close-view-modal')?.addEventListener('click', () => this.closeViewModal());
 
-    const btnCerrarModal = document.getElementById('btnCerrarModal');
-    if (btnCerrarModal) {
-      btnCerrarModal.onclick = () => {
-        const modal = document.getElementById('modalVerRespuesta');
-        if (modal) modal.style.display = 'none';
+    document.getElementById('createPqrForm')?.addEventListener('submit', (e) => this.handleCreateSubmit(e));
+    document.getElementById('adminResponseForm')?.addEventListener('submit', (e) => this.handleAdminSubmit(e));
+
+    const tbody = document.getElementById('pqr-table-body');
+    if (tbody) {
+      tbody.onclick = (e) => {
+        const btnView = e.target.closest('.btn-view');
+        const btnDelete = e.target.closest('.btn-delete');
+
+        if (btnView) {
+          const item = JSON.parse(btnView.dataset.pqr);
+          this.openViewModal(item);
+        } else if (btnDelete) {
+          const id = btnDelete.dataset.id;
+          this.handleDelete(id);
+        }
       };
     }
   },
 
-  async cargarTabla(container) {
-    const { id, isAdmin } = this.getUserData();
-    const tbody = document.getElementById('tabla-pqrs-body') || document.getElementById('pqrs-table-body');
+  async fetchPqrs() {
+    const res = await fetch('/api/soporte', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Error al obtener la lista de PQRS');
+    return data;
+  },
 
+  async loadPqrs() {
+    try {
+      const response = await this.fetchPqrs();
+      this.currentUserRole = response.userRole;
+      this.pagination.setData(response.pqrs || []);
+      this.renderTable();
+    } catch (err) {
+      this.showAlert('soporte-main-alert', err.message);
+    }
+  },
+
+  renderTable() {
+    const tbody = document.getElementById('pqr-table-body');
     if (!tbody) return;
 
-    try {
-      if (!isAdmin && !id) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:orange; padding:15px;">ID de usuario no encontrado en la sesión. Revise AuthModule.</td></tr>`;
-        return;
+    const data = this.pagination.getPaginatedData();
+    const isAdmin = this.currentUserRole === 'ADMIN';
+
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay registros de solicitudes disponibles.</td></tr>';
+      this.pagination.render();
+      return;
+    }
+
+    tbody.innerHTML = data.map(p => {
+      const fecha = new Date(p.creado_en).toLocaleDateString('es-CO');
+      const pqrJson = JSON.stringify(p).replace(/'/g, "&apos;");
+
+      let badge = '<span class="badge-role" style="background:#fef3c7; color:#92400e;">PENDIENTE</span>';
+      if (p.estado === 'RESUELTO') {
+        badge = '<span class="badge-active">RESUELTO</span>';
+      } else if (p.estado === 'RECHAZADO') {
+        badge = '<span class="badge-inactive">RECHAZADO</span>';
+      } else if (p.estado === 'EN_PROCESO') {
+        badge = '<span class="badge-role" style="background:#e0f2fe; color:#0369a1;">EN PROCESO</span>';
       }
 
-      const endpoint = isAdmin ? `${API_URL}/todos` : `${API_URL}/usuario/${id}`;
-      const res = await fetch(endpoint, { headers: this.getHeaders() });
-
-      if (!res.ok) {
-        throw new Error(`Error en el servidor HTTP: ${res.status}`);
-      }
-
-      const tickets = await res.json();
-      tbody.innerHTML = '';
-
-      if (!Array.isArray(tickets) || tickets.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px;">No hay tickets registrados.</td></tr>`;
-        return;
-      }
-
-      tickets.forEach(t => {
-        const tr = document.createElement('tr');
-        tr.style.borderBottom = '1px solid #f1f5f9';
-
-        let accionesTd = '';
-
-        if (isAdmin) {
-          // Botones sólo para Administrador
-          accionesTd = `
-            <button class="btn-edit btn-navy" data-id="${t.id}" data-tipo="${t.tipo}" data-asunto="${t.asunto}" data-desc="${t.descripcion}"
-                    style="background:#0f172a; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:0.85rem;">Editar</button>
-            <button class="btn-del btn-navy" data-id="${t.id}"
-                    style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:0.85rem;">Eliminar</button>
-          `;
-        } else {
-          // Botón único para Estudiantes / Docentes
-          accionesTd = `
-            <button type="button" class="btn-view-resp" data-asunto="${t.asunto}" data-respuesta="${t.respuesta || ''}"
-                    style="background:#0284c7; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:0.85rem;">
-              Ver Respuesta
+      return `
+        <tr>
+          <td>${p.id}</td>
+          <td><b>${p.tipo_documento || 'CC'} ${p.documento || ''}</b></td>
+          <td><span class="badge-role">${p.tipo}</span></td>
+          <td>${p.asunto}</td>
+          <td>${fecha}</td>
+          <td>${badge}</td>
+          <td>
+            <button class="action-btn btn-edit btn-view" data-pqr='${pqrJson}' title="Ver o Responder">
+              <i class="fa-solid fa-eye"></i>
             </button>
-          `;
-        }
+            ${isAdmin ? `<button class="action-btn btn-delete" data-id="${p.id}" title="Eliminar"><i class="fa-solid fa-trash"></i></button>` : ''}
+          </td>
+        </tr>
+      `;
+    }).join('');
 
-        tr.innerHTML = `
-          <td style="padding: 10px 8px;">${t.id}</td>
-          <td style="padding: 10px 8px;">${t.tipo}</td>
-          <td style="padding: 10px 8px;"><strong>${t.asunto}</strong></td>
-          <td style="padding: 10px 8px;">${t.descripcion}</td>
-          <td style="padding: 10px 8px;">${accionesTd}</td>
-        `;
+    this.pagination.render();
+  },
 
-        tbody.appendChild(tr);
+  openCreateModal() {
+    this.hideAlert('create-pqr-alert');
+    document.getElementById('createPqrForm').reset();
+    document.getElementById('createPqrModal').style.display = 'flex';
+  },
+
+  closeCreateModal() {
+    this.hideAlert('create-pqr-alert');
+    document.getElementById('createPqrModal').style.display = 'none';
+  },
+
+  openViewModal(pqr) {
+    this.hideAlert('view-pqr-alert');
+    document.getElementById('viewPqrTitle').innerText = `PQR #${pqr.id} - ${pqr.tipo}`;
+    document.getElementById('viewPqrUser').innerText = `${pqr.usuario_nombre} (${pqr.tipo_documento || 'CC'} ${pqr.documento})`;
+    document.getElementById('viewPqrAsunto').innerText = pqr.asunto;
+    document.getElementById('viewPqrDescripcion').innerText = pqr.descripcion;
+
+    const isAdmin = this.currentUserRole === 'ADMIN';
+    const userContainer = document.getElementById('userResponseContainer');
+    const adminContainer = document.getElementById('adminResponseFormContainer');
+
+    if (isAdmin) {
+      userContainer.style.display = 'none';
+      adminContainer.style.display = 'block';
+      document.getElementById('adminPqrId').value = pqr.id;
+      document.getElementById('adminRespuestaText').value = pqr.respuesta || '';
+      document.getElementById('adminPqrEstado').value = pqr.estado === 'PENDIENTE' ? 'RESUELTO' : pqr.estado;
+    } else {
+      adminContainer.style.display = 'none';
+      userContainer.style.display = 'block';
+
+      const respBox = document.getElementById('viewPqrRespuesta');
+      if (pqr.respuesta && pqr.respuesta.trim()) {
+        respBox.style.background = '#ecfdf5';
+        respBox.style.border = '1px solid #a7f3d0';
+        respBox.style.color = '#065f46';
+        respBox.innerText = pqr.respuesta;
+      } else {
+        respBox.style.background = '#fffbeb';
+        respBox.style.border = '1px solid #fde68a';
+        respBox.style.color = '#92400e';
+        respBox.innerHTML = '<i class="fa-solid fa-clock"></i> <i>Tu solicitud está en revisión por el área de soporte. Pronto recibirás una respuesta.</i>';
+      }
+    }
+
+    document.getElementById('viewPqrModal').style.display = 'flex';
+  },
+
+  closeViewModal() {
+    this.hideAlert('view-pqr-alert');
+    document.getElementById('viewPqrModal').style.display = 'none';
+  },
+
+  async handleCreateSubmit(e) {
+    e.preventDefault();
+    this.hideAlert('create-pqr-alert');
+
+    const body = {
+      tipo: document.getElementById('pqrTipo').value,
+      asunto: document.getElementById('pqrAsunto').value,
+      descripcion: document.getElementById('pqrDescripcion').value
+    };
+
+    try {
+      const res = await fetch('/api/soporte', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(body)
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Error al guardar la PQR');
 
-      // Asignar evento al botón "Ver Respuesta"
-      document.querySelectorAll('.btn-view-resp').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const ds = e.currentTarget.dataset;
-          const modalAsunto = document.getElementById('modal-asunto');
-          const modalTexto = document.getElementById('modal-texto');
-          const modal = document.getElementById('modalVerRespuesta');
-
-          if (modalAsunto) modalAsunto.innerText = ds.asunto;
-          if (modalTexto) {
-            modalTexto.innerText = (ds.respuesta && ds.respuesta.trim() !== '') 
-              ? ds.respuesta 
-              : 'Su solicitud aún no ha sido respondida.';
-          }
-          if (modal) modal.style.display = 'flex';
-        });
-      });
-
+      this.closeCreateModal();
+      this.loadPqrs();
     } catch (err) {
-      console.error(err);
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red; padding:15px;">Error al consultar las PQRS.</td></tr>`;
+      this.showAlert('create-pqr-alert', err.message);
     }
   },
 
-  async crearTicket() {
-    const { id } = this.getUserData();
-    const tipo = document.getElementById('pqrs-tipo').value;
-    const asunto = document.getElementById('pqrs-asunto').value;
-    const descripcion = document.getElementById('pqrs-desc').value;
+  async handleAdminSubmit(e) {
+    e.preventDefault();
+    this.hideAlert('view-pqr-alert');
+
+    const id = document.getElementById('adminPqrId').value;
+    const body = {
+      respuesta: document.getElementById('adminRespuestaText').value,
+      estado: document.getElementById('adminPqrEstado').value
+    };
 
     try {
-      const res = await fetch(`${API_URL}`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ tipo, asunto, descripcion, usuario_id: id })
+      const res = await fetch(`/api/soporte/${id}/responder`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(body)
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Error al guardar la respuesta');
 
-      if (!res.ok) throw new Error('Error al radicar ticket');
-
-      document.getElementById('formPqrs').reset();
-      await this.cargarTabla();
+      this.closeViewModal();
+      this.loadPqrs();
     } catch (err) {
-      alert(err.message);
+      this.showAlert('view-pqr-alert', err.message);
     }
+  },
+
+  async handleDelete(id) {
+    if (!confirm('¿Confirmas la eliminación de este registro de PQR?')) return;
+
+    try {
+      const res = await fetch(`/api/soporte/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Error al eliminar la PQR');
+
+      this.loadPqrs();
+    } catch (err) {
+      this.showAlert('soporte-main-alert', err.message);
+    }
+  },
+
+  showAlert(elementId, msg) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.innerText = msg;
+    el.style.display = 'block';
+  },
+
+  hideAlert(elementId) {
+    const el = document.getElementById(elementId);
+    if (el) el.style.display = 'none';
   }
 };
 

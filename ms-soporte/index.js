@@ -1,6 +1,6 @@
 /**
  * @file Index Principal - ms-soporte
- * @description Servidor de inicio para el microservicio de PQRS y soporte.
+ * @location ms-soporte/index.js
  */
 
 const express = require("express");
@@ -8,58 +8,18 @@ const cors = require("cors");
 const soporteRoutes = require("./routes/soporteRoutes");
 
 const app = express();
+const PORT = parseInt(process.env.PORT || "3007", 10);
 
 app.use(cors());
 app.use(express.json());
 
-const SERVICIO = "ms-soporte";
-
-if (!process.env.PORT) {
-  throw new Error("ERROR FATAL: La variable de entorno PORT no está definida.");
-}
-
-const PORT = parseInt(process.env.PORT, 10);
-
-let avgResponseTime = 0;
-let totalRequests = 0;
-let errorCount = 0;
-
-app.use((req, res, next) => {
-  totalRequests++;
-  const start = Date.now();
-  res.on("finish", () => {
-    const elapsed = Date.now() - start;
-    avgResponseTime = avgResponseTime * 0.9 + elapsed * 0.1;
-    if (res.statusCode >= 400) errorCount++;
-  });
-  next();
-});
-
-// COMPATIBILIDAD CON PROXY/API GATEWAY:
-// Soporta peticiones directas / como peticiones enrutadas /api/soporte
-app.use("/api/soporte", soporteRoutes);
+// IMPORTANTE: Montar en "/" porque ms-gateway hace pathRewrite de "/api/soporte" a ""
 app.use("/", soporteRoutes);
 
 app.get("/health", (req, res) => {
-  res.json({
-    servicio: SERVICIO,
-    estado: "ok",
-    response_time_ms: Math.round(avgResponseTime),
-    timestamp: new Date()
-  });
-});
-
-app.get("/metrics", (req, res) => {
-  res.json({
-    servicio: SERVICIO,
-    uptime_seconds: Math.round(process.uptime()),
-    memory_mb: Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) / 100,
-    total_requests: totalRequests,
-    error_count: errorCount,
-    avg_response_time_ms: Math.round(avgResponseTime)
-  });
+  res.json({ service: "ms-soporte", status: "ok", timestamp: new Date() });
 });
 
 app.listen(PORT, () => {
-  console.log(`[${SERVICIO}] Corriendo en el puerto ${PORT}`);
+  console.log(`[ms-soporte] Servidor ejecutándose en el puerto ${PORT}`);
 });
