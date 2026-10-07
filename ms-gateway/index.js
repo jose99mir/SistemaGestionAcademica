@@ -1,6 +1,8 @@
 /**
  * @file Index Principal - ms-gateway
- * @description Punto único de entrada para el Portal Académico con forward de identidad.
+ * @description Punto único de entrada (API Gateway) para el Portal Académico.
+ * @iso ISO/IEC 25010 - Alta Disponibilidad y Mantenibilidad
+ * @iso ISO/IEC 27001 - Control de Acceso Centralizado
  */
 
 const express = require("express");
@@ -13,6 +15,7 @@ if (!process.env.PORT) {
   throw new Error("ERROR FATAL: La variable de entorno PORT no está definida.");
 }
 
+// Validasion dagiti variables ti entorno para kadagiti microservicios
 const requiredEnvVars = [
   "MS_AUTH_URL",
   "MS_USUARIOS_URL",
@@ -88,6 +91,7 @@ Object.entries(services).forEach(([path, target]) => {
   );
 });
 
+// Health check global ti API Gateway 
 app.get("/health", (req, res) => {
   res.json({
     gateway: "ok",
