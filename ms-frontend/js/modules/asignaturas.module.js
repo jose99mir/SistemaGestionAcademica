@@ -42,6 +42,16 @@ export const AsignaturasModule = {
     const user = AuthModule.getUser() || {};
     const isAdmin = user.rol === 'ADMIN';
 
+    // 1. Escuchar búsqueda en tiempo real
+    document.getElementById('input-search-asignatura')?.addEventListener('input', () => {
+      this.applyFilters();
+    });
+
+    // 2. Escuchar cambio en el combo de periodo (Estudiantes / General)
+    document.getElementById('select-periodo-filtro')?.addEventListener('change', () => {
+      this.loadData();
+    });
+
     if (isAdmin) {
       const btnCreate = document.getElementById('btn-open-asignatura-create');
       if (btnCreate) {
@@ -108,7 +118,27 @@ export const AsignaturasModule = {
     }
   },
 
-  async loadData() {
+ applyFilters() {
+    const searchTerm = (document.getElementById('input-search-asignatura')?.value || '').toLowerCase().trim();
+
+    if (!searchTerm) {
+      this.pagination.setData(this.currentData);
+    } else {
+      const filtered = this.currentData.filter(item => {
+        const codigo = (item.codigo || '').toLowerCase();
+        const nombre = (item.nombre || item.materiaNombre || '').toLowerCase();
+        const programa = (item.programaNombre || '').toLowerCase();
+
+        return codigo.includes(searchTerm) || nombre.includes(searchTerm) || programa.includes(searchTerm);
+      });
+
+      this.pagination.setData(filtered);
+    }
+
+    this.renderTable();
+  },
+
+async loadData() {
     try {
       const user = AuthModule.getUser() || {};
       const periodoSelect = document.getElementById('select-periodo-filtro');
@@ -130,8 +160,9 @@ export const AsignaturasModule = {
       
       const data = await res.json();
       this.currentData = Array.isArray(data) ? data : [];
-      this.pagination.setData(this.currentData);
-      this.renderTable();
+      
+      // Aplica el filtro de texto activo sobre los datos recibidos del backend
+      this.applyFilters();
     } catch (err) {
       console.error('Error cargando asignaturas:', err);
       this.showAlert(err.message, true);

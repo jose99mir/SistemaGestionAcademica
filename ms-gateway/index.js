@@ -34,7 +34,7 @@ const PORT = parseInt(process.env.PORT, 10);
 
 app.use(cors());
 
-// Mapeo de microservicios backend
+// Mapeo de cmicroservicios backend 
 const services = {
   "/api/auth": process.env.MS_AUTH_URL,
   "/api/usuarios": process.env.MS_USUARIOS_URL,

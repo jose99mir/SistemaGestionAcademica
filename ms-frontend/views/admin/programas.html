@@ -1,31 +1,43 @@
 <div class="crud-card">
   <div class="header-action">
-    <div>
+    <div class="header-title-box">
       <h2>Gestión de Programas Académicos</h2>
       <p class="subtitle">Administra la oferta de programas académicos de la institución.</p>
     </div>
-    <button type="button" id="btn-open-program-create" class="btn-primary">
-      <i class="fa-solid fa-plus"></i> Nuevo Programa
-    </button>
+
+    <!-- Contenedor alineado horizontalmente -->
+    <div class="header-controls">
+      <input 
+        type="text" 
+        id="input-search-program" 
+        placeholder="Buscar por código, nombre o facultad..." 
+        class="input-full input-search-filter"
+      />
+      <button type="button" id="btn-open-program-create" class="btn-primary btn-create-program">
+        <i class="fa-solid fa-plus"></i> Nuevo Programa
+      </button>
+    </div>
   </div>
 
   <div id="main-program-alert" class="alert-box"></div>
 
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Código</th>
-        <th>Nombre del Programa</th>
-        <th>Facultad</th>
-        <th>Estado</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody id="programs-table-body">
-      <tr><td colspan="6" class="text-center">Cargando programas...</td></tr>
-    </tbody>
-  </table>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Código</th>
+          <th>Nombre del Programa</th>
+          <th>Facultad</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="programs-table-body">
+        <tr><td colspan="6" class="text-center">Cargando programas...</td></tr>
+      </tbody>
+    </table>
+  </div>
   <div id="programs-pagination" class="pagination-wrapper"></div>
 </div>
 

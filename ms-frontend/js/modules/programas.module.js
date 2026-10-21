@@ -9,10 +9,10 @@ import { PaginationHelper } from './pagination.component.js';
 
 export const ProgramasModule = {
   pagination: null,
+  currentData: [], // Guarda los datos originales para el filtro local
 
   // --- INICIALIZACIÓN ---
   init() {
-    // Instanciar el helper si no existe
     this.pagination = new PaginationHelper({
       containerId: 'programs-pagination',
       rowsPerPage: 5,
@@ -25,6 +25,11 @@ export const ProgramasModule = {
 
   // --- REGISTRO DE EVENTOS DEL DOM ---
   initEvents() {
+    // Escucha la búsqueda incremental en tiempo real
+    document.getElementById('input-search-program')?.addEventListener('input', () => {
+      this.applyFilter();
+    });
+
     document.getElementById('btn-open-program-create')?.addEventListener('click', () => this.openProgramModal());
     document.getElementById('btn-close-program-modal')?.addEventListener('click', () => this.closeProgramModal());
 
@@ -45,6 +50,27 @@ export const ProgramasModule = {
         }
       };
     }
+  },
+
+  // --- FILTRADO INCREMENTAL ---
+  applyFilter() {
+    const searchTerm = (document.getElementById('input-search-program')?.value || '').toLowerCase().trim();
+
+    if (!searchTerm) {
+      this.pagination.setData(this.currentData);
+    } else {
+      const filtered = this.currentData.filter(item => {
+        const codigo = (item.codigo || '').toLowerCase();
+        const nombre = (item.nombre || '').toLowerCase();
+        const facultad = (item.facultad || '').toLowerCase();
+
+        return codigo.includes(searchTerm) || nombre.includes(searchTerm) || facultad.includes(searchTerm);
+      });
+
+      this.pagination.setData(filtered);
+    }
+
+    this.renderTable();
   },
 
   // --- PETICIONES HTTP ---
@@ -109,8 +135,8 @@ export const ProgramasModule = {
         lista = responseData.data;
       }
       
-      this.pagination.setData(lista);
-      this.renderTable();
+      this.currentData = lista;
+      this.applyFilter();
     } catch (err) {
       console.error('Error al cargar datos:', err);
       this.showMainAlert(err.message, true);
@@ -121,7 +147,6 @@ export const ProgramasModule = {
     const tbody = document.getElementById('programs-table-body');
     if (!tbody) return;
 
-    // Asegurar re-asociación del contenedor en el DOM actual
     if (this.pagination) {
       this.pagination.container = document.getElementById('programs-pagination');
     }

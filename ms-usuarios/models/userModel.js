@@ -41,6 +41,18 @@ class UserModel {
     return rows;
   }
 
+  static async findByEmail(email) {
+    const query = `
+      SELECT id, tipo_documento, documento, nombre, email, password_hash, activo 
+      FROM usuarios 
+      WHERE LOWER(email) = LOWER(?) 
+      LIMIT 1
+    `;
+    const [rows] = await pool.execute(query, [email]);
+    if (!rows.length) return null;
+    return { ...rows[0], activo: Boolean(rows[0].activo) };
+  }
+
   static async getAllRoles() {
     const [rows] = await pool.execute("SELECT id, nombre FROM roles ORDER BY id ASC");
     return rows;

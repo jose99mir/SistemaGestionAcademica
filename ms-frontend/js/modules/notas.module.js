@@ -26,6 +26,13 @@ export const NotasModule = {
       document.getElementById('notas-admin-docente-view').style.display = 'block';
       document.getElementById('notas-estudiante-view').style.display = 'none';
 
+      // --- No muestra columna profesor titular. Solo para el Admin ---
+      const thProfesor = document.getElementById('th-profesor-titular');
+      if (thProfesor) {
+        thProfesor.style.display = (user.rol === 'ADMIN') ? '' : 'none';
+      }
+      // ------------------------------------
+
       this.paginationMaterias = new PaginationHelper({
         containerId: 'notas-materias-pagination',
         rowsPerPage: 5,
@@ -133,34 +140,38 @@ export const NotasModule = {
   },
 
   renderMateriasTable() {
-    const tbody = document.getElementById('notas-materias-table-body');
-    if (!tbody) return;
+  const tbody = document.getElementById('notas-materias-table-body');
+  if (!tbody) return;
 
-    const items = this.paginationMaterias.getPaginatedData();
+  const user = AuthModule.getUser() || {};
+  const isAdmin = user.rol === 'ADMIN'; // Condición de rol
+  const items = this.paginationMaterias.getPaginatedData();
 
-    if (!items.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 20px; color: var(--muted);">No se encontraron asignaturas con alumnos matriculados.</td></tr>`;
-      this.paginationMaterias.render();
-      return;
-    }
-
-    tbody.innerHTML = items.map(item => `
-      <tr>
-        <td><b>${item.materiaCodigo || ''}</b></td>
-        <td>${item.materiaNombre}</td>
-        <td>${item.periodoNombre}</td>
-        <td>${item.profesorNombre || 'Sin Profesor'}</td>
-        <td class="text-center"><span class="badge-role">${item.totalEstudiantes} Alumnos</span></td>
-        <td class="text-center">
-          <button type="button" class="action-btn btn-edit" onclick="window.NotasModule.openPlanilla(${item.materiaId}, ${item.periodoId}, '${item.materiaNombre}', '${item.periodoNombre}')" title="Ingresar Calificaciones">
-            <i class="fa-solid fa-pen-to-square"></i>
-          </button>
-        </td>
-      </tr>
-    `).join('');
-
+  if (!items.length) {
+    // Si no es admin, colspan es 5; si es admin, colspan es 6
+    const totalCols = isAdmin ? 6 : 5;
+    tbody.innerHTML = `<tr><td colspan="${totalCols}" class="text-center" style="padding: 20px; color: var(--muted);">No se encontraron asignaturas con alumnos matriculados.</td></tr>`;
     this.paginationMaterias.render();
-  },
+    return;
+  }
+
+  tbody.innerHTML = items.map(item => `
+    <tr>
+      <td><b>${item.materiaCodigo || ''}</b></td>
+      <td>${item.materiaNombre}</td>
+      <td>${item.periodoNombre}</td>
+      ${isAdmin ? `<td>${item.profesorNombre || 'Sin Profesor'}</td>` : ''} <!-- Renderizado condicional -->
+      <td class="text-center"><span class="badge-role">${item.totalEstudiantes} Alumnos</span></td>
+      <td class="text-center">
+        <button type="button" class="action-btn btn-edit" onclick="window.NotasModule.openPlanilla(${item.materiaId}, ${item.periodoId}, '${item.materiaNombre}', '${item.periodoNombre}')" title="Ingresar Calificaciones">
+          <i class="fa-solid fa-file-pen"></i>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+
+  this.paginationMaterias.render();
+},
 
   async openPlanilla(materiaId, periodoId, materiaNombre, periodoNombre) {
     try {

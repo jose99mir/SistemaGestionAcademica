@@ -622,3 +622,140 @@ th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eef0f5; font
 .alert-error-box.show {
   display: block !important;
 }
+
+/* ==========================================
+   ALINEACIÓN HORIZONTAL - ASIGNATURAS
+   ========================================== */
+
+.header-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.header-title-box {
+  flex: 1;
+  min-width: 220px;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 1.4rem;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.header-action .subtitle {
+  margin-top: 4px;
+}
+
+/* Fuerza el flujo horizontal en 1 sola fila */
+.header-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+/* Ajuste de anchos individuales */
+.filter-periodo-wrapper {
+  display: none; /* Controlado dinámicamente por JS */
+}
+
+.select-filter {
+  margin: 0 !important;
+  width: 200px;
+}
+
+.input-search-filter {
+  margin: 0 !important;
+  width: 280px;
+}
+
+.btn-create-asignatura {
+  margin: 0 !important;
+  width: auto;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Responsivo solo cuando la pantalla es muy angosta (< 900px) */
+@media (max-width: 900px) {
+  .header-action {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-controls {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .select-filter,
+  .input-search-filter,
+  .btn-create-asignatura,
+  .filter-periodo-wrapper {
+    width: 100% !important;
+  }
+}
+/* ==========================================================================
+   ESTILIZACIÓN FORMULARIOS Y SELECTORES (HOMOGÉNEO)
+   ========================================================================== */
+
+/* Normalización de la apariencia nativa en todos los navegadores */
+select.input-full,
+input.input-full {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* Estilo base para el control desplegable <select> */
+select.input-full {
+  padding: 10px 38px 10px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background-color: #f9fafb;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  
+  /* Icono de flecha personalizada limpia */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%206b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}
+
+/* Efectos de Hover y Focus idénticos a los inputs */
+select.input-full:hover,
+input.input-full:hover {
+  border-color: #cbd5e1;
+  background-color: #ffffff;
+}
+
+select.input-full:focus,
+input.input-full:focus {
+  border-color: var(--blue);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Estilo para los inputs de búsqueda */
+input.input-search-filter {
+  padding: 10px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  background: #f9fafb;
+  color: var(--text);
+}

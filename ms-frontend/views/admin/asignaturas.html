@@ -1,21 +1,30 @@
 <div class="card">
   <!-- Cabecera Adaptable -->
   <div class="header-action">
-    <div>
-      <h3 style="margin: 0; font-size: 1.4rem; color: var(--navy); font-weight: 700;">Gestión de Asignaturas</h3>
-      <p class="subtitle" style="margin-top: 4px;">Consulta y administración de la carga académica.</p>
+    <div class="header-title-box">
+      <h3 class="header-title">Gestión de Asignaturas</h3>
+      <p class="subtitle">Consulta y administración de la carga académica.</p>
     </div>
 
-    <div style="display: flex; gap: 12px; align-items: center;">
-      <!-- Combo de Periodo (Visible para Estudiantes) -->
-      <div id="filter-periodo-container" style="display: none;">
-        <select id="select-periodo-filtro" class="input-full" style="margin: 0; min-width: 180px;">
+    <!-- Contenedor Alineado de Filtros y Botón -->
+    <div class="header-controls">
+      <!-- Combo de Periodo (Visible para Estudiantes según JS) -->
+      <div id="filter-periodo-container" class="filter-periodo-wrapper">
+        <select id="select-periodo-filtro" class="input-full select-filter">
           <option value="">-- Todos los Periodos --</option>
         </select>
       </div>
 
-      <!-- Botón visible solo para ADMIN -->
-      <button id="btn-open-asignatura-create" type="button" class="btn-primary btn-page" style="width: auto; display: none;">
+      <!-- Campo de Búsqueda Incremental -->
+      <input 
+        type="text" 
+        id="input-search-asignatura" 
+        placeholder="Buscar por código, nombre o programa..." 
+        class="input-full input-search-filter"
+      />
+
+      <!-- Botón Visible solo para ADMIN (Controlado vía JS) -->
+      <button id="btn-open-asignatura-create" type="button" class="btn-primary btn-page btn-create-asignatura">
         <i class="fa-solid fa-plus"></i> Nueva Asignatura
       </button>
     </div>
@@ -23,18 +32,19 @@
 
   <div id="main-asignatura-alert" class="alert-box" style="display: none;"></div>
 
-  <!-- Contenedor Responsivo -->
+  <!-- Contenedor Responsivo para la Tabla -->
   <div class="table-responsive">
     <table class="data-table">
       <thead id="asignaturas-table-head">
-        <!-- Renderizado dinámico según el Rol -->
+        <!-- Renderizado dinámico vía JS según el Rol -->
       </thead>
       <tbody id="asignaturas-table-body">
-        <!-- Carga vía JS -->
+        <!-- Carga dinámica vía JS -->
       </tbody>
     </table>
   </div>
 
+  <!-- Paginación -->
   <div id="asignaturas-pagination" class="pagination-wrapper"></div>
 </div>
 
