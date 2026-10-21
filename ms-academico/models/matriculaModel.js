@@ -56,14 +56,15 @@ const MatriculaModel = {
   // Busca estudiantes activos en usuarios para autocompletado
   async buscarEstudiantes(termino) {
     const filter = `%${termino}%`;
-    const query = `
-      SELECT id, documento, nombre, email 
-      FROM usuarios 
-      WHERE rol = 'ESTUDIANTE' 
-        AND activo = 1 
-        AND (documento LIKE ? OR nombre LIKE ?)
-      LIMIT 10
-    `;
+    const query = ` SELECT usuarios.id, usuarios.documento, usuarios.nombre, usuarios.email 
+                    FROM usuarios
+                    INNER JOIN usuario_rol ON usuario_rol.usuario_id = usuarios.id
+                    INNER JOIN roles ON roles.id = usuario_rol.rol_id
+                    WHERE roles.nombre = 'ESTUDIANTE' 
+                    AND usuarios.activo = 1 
+                    AND (usuarios.documento LIKE ? OR usuarios.nombre LIKE ?)
+                    LIMIT 10 `;
+                    
     const [rows] = await db.query(query, [filter, filter]);
     return rows;
   },
