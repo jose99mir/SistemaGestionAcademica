@@ -39,37 +39,49 @@ export const AsignaturasModule = {
   },
 
   bindEvents() {
-    const user = AuthModule.getUser() || {};
-    const isAdmin = user.rol === 'ADMIN';
+  const user = AuthModule.getUser() || {};
+  const isAdmin = user.rol === 'ADMIN';
 
-    // 1. Escuchar búsqueda en tiempo real
-    document.getElementById('input-search-asignatura')?.addEventListener('input', () => {
+  // Ocultar siempre por defecto
+  const btnCreate = document.getElementById('btn-open-asignatura-create');
+
+  if (btnCreate) {
+    btnCreate.style.display = 'none';
+
+    // Mostrar exclusivamente para ADMIN
+    if (isAdmin) {
+      btnCreate.style.display = 'inline-flex';
+      btnCreate.onclick = () => this.openModal();
+    }
+  }
+
+  // Búsqueda en tiempo real
+  document.getElementById('input-search-asignatura')
+    ?.addEventListener('input', () => {
       this.applyFilters();
     });
 
-    // 2. Escuchar cambio en el combo de periodo (Estudiantes / General)
-    document.getElementById('select-periodo-filtro')?.addEventListener('change', () => {
+  // Filtro por periodo
+  document.getElementById('select-periodo-filtro')
+    ?.addEventListener('change', () => {
       this.loadData();
     });
 
-    if (isAdmin) {
-      const btnCreate = document.getElementById('btn-open-asignatura-create');
-      if (btnCreate) {
-        btnCreate.style.display = 'inline-flex';
-        btnCreate.onclick = () => this.openModal();
-      }
+  // Eventos exclusivos del administrador
+  if (isAdmin) {
+    const btnCancel = document.getElementById('btn-close-asignatura-modal');
 
-      const btnCancel = document.getElementById('btn-close-asignatura-modal');
-      if (btnCancel) {
-        btnCancel.onclick = () => this.closeModal();
-      }
-
-      const form = document.getElementById('asignaturaForm');
-      if (form) {
-        form.onsubmit = (e) => this.handleSubmit(e);
-      }
+    if (btnCancel) {
+      btnCancel.onclick = () => this.closeModal();
     }
-  },
+
+    const form = document.getElementById('asignaturaForm');
+
+    if (form) {
+      form.onsubmit = (e) => this.handleSubmit(e);
+    }
+  }
+},
 
   async loadPeriodosCombo() {
     try {
