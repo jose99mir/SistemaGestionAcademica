@@ -10,6 +10,7 @@ export const NotasModule = {
   paginationMaterias: null,
   planillaData: [],
   selectedMateria: null,
+  isPeriodoActivo: true,
 
   async init() {
     window.NotasModule = this;
@@ -31,7 +32,6 @@ export const NotasModule = {
       if (thProfesor) {
         thProfesor.style.display = (user.rol === 'ADMIN') ? '' : 'none';
       }
-      // ------------------------------------
 
       this.paginationMaterias = new PaginationHelper({
         containerId: 'notas-materias-pagination',
@@ -65,31 +65,7 @@ export const NotasModule = {
     if (modal) modal.style.display = 'none';
   },
 
-  // Puebla el combo del estudiante trayendo SÓLO los periodos donde tiene materias matriculadas
-  async loadPeriodosEstudianteCombo() {
-    try {
-      const user = AuthModule.getUser() || {};
-      const res = await fetch('/api/academico/notas/estudiante/periodos', {
-        headers: {
-          'Authorization': `Bearer ${AuthModule.getToken()}`,
-          'x-user-id': user.id || ''
-        }
-      });
-
-      if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-
-      const periodos = await res.json();
-      const selectFiltro = document.getElementById('select-estudiante-periodo-filtro');
-
-      if (selectFiltro) {
-        selectFiltro.innerHTML = '<option value="">-- Todos los Periodos --</option>' +
-          (Array.isArray(periodos) ? periodos : []).map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
-      }
-    } catch (err) {
-      console.error('Error cargando los periodos del estudiante:', err.message);
-    }
-  },
-
+  // Puebla el combo de periodos del administrador/docente
   async loadPeriodosCombo() {
     try {
       const res = await fetch('/api/academico/periodos', {
@@ -140,44 +116,66 @@ export const NotasModule = {
   },
 
   renderMateriasTable() {
-  const tbody = document.getElementById('notas-materias-table-body');
-  if (!tbody) return;
+    const tbody = document.getElementById('notas-materias-table-body');
+    if (!tbody) return;
 
-  const user = AuthModule.getUser() || {};
-  const isAdmin = user.rol === 'ADMIN'; // Condición de rol
-  const items = this.paginationMaterias.getPaginatedData();
+    const user = AuthModule.getUser() || {};
+    const isAdmin = user.rol === 'ADMIN';
+    const items = this.paginationMaterias.getPaginatedData();
 
-  if (!items.length) {
-    // Si no es admin, colspan es 5; si es admin, colspan es 6
-    const totalCols = isAdmin ? 6 : 5;
-    tbody.innerHTML = `<tr><td colspan="${totalCols}" class="text-center" style="padding: 20px; color: var(--muted);">No se encontraron asignaturas con alumnos matriculados.</td></tr>`;
+    if (!items.length) {
+      const totalCols = isAdmin ? 6 : 5;
+      tbody.innerHTML = `<tr><td colspan="${totalCols}" class="text-center" style="padding: 20px; color: var(--muted);">No se encontraron asignaturas con alumnos matriculados.</td></tr>`;
+      this.paginationMaterias.render();
+      return;
+    }
+
+    tbody.innerHTML = items.map(item => {
+      // En MySQL el campo 'activo' viene como 1 (activo) o 0 (inactivo)
+      const esActivo = item.periodoActivo === 1 || item.periodoActivo === true;
+
+      return `
+        <tr>
+          <td><b>${item.materiaCodigo || ''}</b></td>
+          <td>${item.materiaNombre}</td>
+          <td>
+            ${item.periodoNombre}
+            ${!esActivo ? '<span style="font-size:0.7rem; background:#fee2e2; color:#ef4444; padding:2px 6px; border-radius:4px; margin-left:4px; font-weight:700;">INACTIVO</span>' : ''}
+          </td>
+          ${isAdmin ? `<td>${item.profesorNombre || 'Sin Profesor'}</td>` : ''}
+          <td class="text-center"><span class="badge-role">${item.totalEstudiantes} Alumnos</span></td>
+          <td class="text-center">
+            <button type="button" 
+              class="action-btn ${esActivo || isAdmin ? 'btn-edit' : 'btn-secondary'}" 
+              onclick="window.NotasModule.openPlanilla(${item.materiaId}, ${item.periodoId}, '${item.materiaNombre}', '${item.periodoNombre}', ${item.periodoActivo})" 
+              title="${!esActivo && !isAdmin ? 'Ver Planilla (Periodo Inactivo - Solo Lectura)' : 'Ingresar / Modificar Calificaciones'}">
+              <i class="fa-solid ${!esActivo && !isAdmin ? 'fa-eye' : 'fa-file-pen'}"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
     this.paginationMaterias.render();
-    return;
-  }
+  },
 
-  tbody.innerHTML = items.map(item => `
-    <tr>
-      <td><b>${item.materiaCodigo || ''}</b></td>
-      <td>${item.materiaNombre}</td>
-      <td>${item.periodoNombre}</td>
-      ${isAdmin ? `<td>${item.profesorNombre || 'Sin Profesor'}</td>` : ''} <!-- Renderizado condicional -->
-      <td class="text-center"><span class="badge-role">${item.totalEstudiantes} Alumnos</span></td>
-      <td class="text-center">
-        <button type="button" class="action-btn btn-edit" onclick="window.NotasModule.openPlanilla(${item.materiaId}, ${item.periodoId}, '${item.materiaNombre}', '${item.periodoNombre}')" title="Ingresar Calificaciones">
-          <i class="fa-solid fa-file-pen"></i>
-        </button>
-      </td>
-    </tr>
-  `).join('');
-
-  this.paginationMaterias.render();
-},
-
-  async openPlanilla(materiaId, periodoId, materiaNombre, periodoNombre) {
+  async openPlanilla(materiaId, periodoId, materiaNombre, periodoNombre, estadoPeriodo = 1) {
     try {
       this.selectedMateria = { materiaId, periodoId };
+      
+      const user = AuthModule.getUser() || {};
+      const isAdmin = user.rol === 'ADMIN';
+      
+      // Si es ADMIN permite editar siempre; si es DOCENTE, solo si el periodo está ACTIVO (1 / true)
+      this.isPeriodoActivo = isAdmin || (estadoPeriodo === 1 || estadoPeriodo === true || estadoPeriodo === 'ACTIVO');
+
       document.getElementById('planillaModalTitle').innerText = materiaNombre;
-      document.getElementById('planillaModalSub').innerText = `Periodo Académico: ${periodoNombre}`;
+      
+      let subTitleText = `Periodo Académico: ${periodoNombre}`;
+      if (!this.isPeriodoActivo) {
+        subTitleText += ` — [PERIODO INACTIVO - SOLO LECTURA]`;
+      }
+      document.getElementById('planillaModalSub').innerText = subTitleText;
 
       const res = await fetch(`/api/academico/notas/docente/planilla/${materiaId}/${periodoId}`, {
         headers: { 'Authorization': `Bearer ${AuthModule.getToken()}` }
@@ -189,6 +187,15 @@ export const NotasModule = {
       this.planillaData = Array.isArray(data) ? data : [];
 
       this.renderGridPlanilla();
+      
+      // Control visual del botón Guardar
+      const btnSave = document.getElementById('btn-save-planilla-notas');
+      if (btnSave) {
+        btnSave.disabled = !this.isPeriodoActivo;
+        btnSave.style.opacity = this.isPeriodoActivo ? '1' : '0.5';
+        btnSave.style.cursor = this.isPeriodoActivo ? 'pointer' : 'not-allowed';
+      }
+
       document.getElementById('modalPlanillaNotas').style.display = 'flex';
     } catch (err) {
       console.error('Error al abrir planilla:', err.message);
@@ -204,24 +211,26 @@ export const NotasModule = {
       return;
     }
 
+    const disabledAttr = !this.isPeriodoActivo ? 'disabled' : '';
+
     tbody.innerHTML = this.planillaData.map((e, index) => `
       <tr>
         <td><b>${e.documento || 'S/D'}</b></td>
         <td>${e.estudianteNombre}</td>
         <td class="text-center">
           <input type="number" step="0.1" min="0" max="5" class="input-full" style="margin:0; text-align:center;" 
-            value="${e.corte1}" onchange="window.NotasModule.updateNotaMemory(${index}, 'corte1', this.value)">
+            value="${e.corte1 ?? 0}" ${disabledAttr} onchange="window.NotasModule.updateNotaMemory(${index}, 'corte1', this.value)">
         </td>
         <td class="text-center">
           <input type="number" step="0.1" min="0" max="5" class="input-full" style="margin:0; text-align:center;" 
-            value="${e.corte2}" onchange="window.NotasModule.updateNotaMemory(${index}, 'corte2', this.value)">
+            value="${e.corte2 ?? 0}" ${disabledAttr} onchange="window.NotasModule.updateNotaMemory(${index}, 'corte2', this.value)">
         </td>
         <td class="text-center">
           <input type="number" step="0.1" min="0" max="5" class="input-full" style="margin:0; text-align:center;" 
-            value="${e.corte3}" onchange="window.NotasModule.updateNotaMemory(${index}, 'corte3', this.value)">
+            value="${e.corte3 ?? 0}" ${disabledAttr} onchange="window.NotasModule.updateNotaMemory(${index}, 'corte3', this.value)">
         </td>
         <td class="text-center">
-          <b id="definitiva-${index}" style="color: var(--navy); font-size: 1rem;">${Number(e.notaFinal).toFixed(1)}</b>
+          <b id="definitiva-${index}" style="color: var(--navy); font-size: 1rem;">${Number(e.notaFinal || 0).toFixed(1)}</b>
         </td>
       </tr>
     `).join('');
@@ -231,9 +240,9 @@ export const NotasModule = {
     const val = parseFloat(value) || 0;
     this.planillaData[index][corteKey] = val;
 
-    const c1 = this.planillaData[index].corte1 || 0;
-    const c2 = this.planillaData[index].corte2 || 0;
-    const c3 = this.planillaData[index].corte3 || 0;
+    const c1 = Number(this.planillaData[index].corte1) || 0;
+    const c2 = Number(this.planillaData[index].corte2) || 0;
+    const c3 = Number(this.planillaData[index].corte3) || 0;
 
     const notaFinal = (c1 * 0.3) + (c2 * 0.3) + (c3 * 0.4);
     this.planillaData[index].notaFinal = parseFloat(notaFinal.toFixed(1));
@@ -243,6 +252,11 @@ export const NotasModule = {
   },
 
   async savePlanillaNotas() {
+    if (!this.isPeriodoActivo) {
+      alert('No es posible modificar las calificaciones en un periodo inactivo.');
+      return;
+    }
+
     try {
       const payload = this.planillaData.map(e => ({
         matriculaId: e.matriculaId,
@@ -256,12 +270,19 @@ export const NotasModule = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${AuthModule.getToken()}`
+          'Authorization': `Bearer ${AuthModule.getToken()}`,
+          'x-user-role': AuthModule.getUser()?.rol || ''
         },
-        body: JSON.stringify({ notas: payload })
+        body: JSON.stringify({ 
+          notas: payload,
+          periodoId: this.selectedMateria?.periodoId 
+        })
       });
 
-      if (!res.ok) throw new Error('Error al guardar las calificaciones');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.mensaje || 'Error al guardar las calificaciones');
+      }
 
       alert('Calificaciones guardadas exitosamente.');
       this.closePlanillaModal();
@@ -270,118 +291,11 @@ export const NotasModule = {
     }
   },
 
-  async loadNotasEstudiante() {
-    try {
-      const user = AuthModule.getUser() || {};
-      const periodoId = document.getElementById('select-estudiante-periodo-filtro')?.value || '';
+  // ==========================================
+  // SECCIÓN ESTUDIANTE
+  // ==========================================
 
-      let url = '/api/academico/notas/estudiante';
-      if (periodoId) url += `?periodoId=${periodoId}`;
-
-      const res = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${AuthModule.getToken()}`,
-          'x-user-id': user.id || ''
-        }
-      });
-
-      if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
-
-      this.renderVistaEstudiante(list);
-    } catch (err) {
-      console.error('Error cargando historial de notas:', err.message);
-    }
-  },
-
-renderVistaEstudiante(list) {
-    const container = document.getElementById('estudiante-periodos-container');
-    if (!container) return;
-
-    if (!Array.isArray(list) || list.length === 0) {
-      container.innerHTML = `<div class="card" style="text-align: center; padding: 30px; color: var(--muted);">No tiene asignaturas registradas para el periodo seleccionado.</div>`;
-      return;
-    }
-
-    // Obtener el periodo seleccionado en el filtro desplegable
-    const selectFiltro = document.getElementById('select-estudiante-periodo-filtro');
-    const periodoSeleccionadoId = selectFiltro ? selectFiltro.value : '';
-
-    const periodosMap = new Map();
-    list.forEach(item => {
-      const pNombre = item.periodoNombre || 'Periodo Sin Nombre';
-      if (!periodosMap.has(pNombre)) {
-        periodosMap.set(pNombre, []);
-      }
-      periodosMap.get(pNombre).push(item);
-    });
-
-    let html = '';
-
-    // Si el usuario seleccionó "Todos los Periodos" (value vacío ''), mostramos un título global general
-    if (!periodoSeleccionadoId) {
-      html += `
-        <div style="margin-bottom: 25px;">
-          <h4 style="font-size: 1.1rem; color: var(--navy); margin-bottom: 12px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-layer-group" style="color: var(--primary-color);"></i> Todos los Periodos Académicos
-          </h4>
-        </div>
-      `;
-    }
-
-    // Agrupación y renderizado de las tarjetas por cada periodo
-    periodosMap.forEach((materias, periodoNombre) => {
-      html += `
-        <div style="margin-bottom: 25px;">
-          <!-- Se muestra el título individual del periodo si hay filtro seleccionado o como subtítulo si son todos -->
-          <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 12px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-calendar-check" style="color: var(--primary-color);"></i> ${periodoNombre}
-          </h4>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px;">
-            ${materias.map(m => `
-              <div class="materia-bubble-card" onclick="window.NotasModule.openDetalleEstudiante('${m.materiaNombre}', '${m.materiaCodigo}', ${m.corte1},${m.corte2}, ${m.corte3},${m.notaFinal})" 
-                   style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s ease-in-out; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
-                
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                  <span style="font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase;">${m.materiaCodigo || 'ASIG'}</span>
-                  <span class="badge-role" style="font-size: 0.7rem;">${m.creditos} Créditos</span>
-                </div>
-
-                <h5 style="margin: 0 0 12px 0; font-size: 1rem; color: var(--navy); font-weight: 700; line-height: 1.3;">${m.materiaNombre}</h5>
-
-                <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 8px 12px; border-radius: 8px;">
-                  <span style="font-size: 0.8rem; font-weight: 600; color: var(--muted);">Definitiva:</span>
-                  <span style="font-size: 1.2rem; font-weight: 800; color: ${m.notaFinal >= 3.0 ? '#10b981' : '#ef4444'};">
-                    ${Number(m.notaFinal).toFixed(1)}
-                  </span>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    });
-
-    container.innerHTML = html;
-  },
-
-  openDetalleEstudiante(nombre, codigo, c1, c2, c3, final) {
-    document.getElementById('modalEstudianteMateriaNombre').innerText = nombre;
-    document.getElementById('modalEstudianteMateriaCodigo').innerText = `Código: ${codigo || 'S/C'}`;
-
-    document.getElementById('detCorte1').innerText = Number(c1).toFixed(1);
-    document.getElementById('detCorte2').innerText = Number(c2).toFixed(1);
-    document.getElementById('detCorte3').innerText = Number(c3).toFixed(1);
-    document.getElementById('detNotaFinal').innerText = Number(final).toFixed(1);
-
-    document.getElementById('modalDetalleNotaEstudiante').style.display = 'flex';
-  },
-
-  // Llena el selector únicamente con los periodos en los que el estudiante tiene matrículas
-async loadPeriodosEstudianteCombo() {
+  async loadPeriodosEstudianteCombo() {
     try {
       const user = AuthModule.getUser() || {};
       const userId = user.id || user.usuario_id || user.sub;
@@ -398,20 +312,13 @@ async loadPeriodosEstudianteCombo() {
         }
       });
 
-      if (!res.ok) {
-        throw new Error(`Error en servidor: ${res.status} ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error(`Error en servidor: ${res.status} ${res.statusText}`);
 
       const data = await res.json();
-      console.log('DEBUG FRONTEND - Datos recibidos del backend:', data);
-
-      // Extrae la lista tanto si viene como arreglo directo [] o envuelta en { data: [] }
       const periodos = Array.isArray(data) ? data : (data.data || []);
 
-      // Intentar obtener el elemento del DOM
       let selectFiltro = document.getElementById('select-estudiante-periodo-filtro');
 
-      // Si por timing aún no existe en el DOM, esperar 100ms
       if (!selectFiltro) {
         await new Promise(resolve => setTimeout(resolve, 100));
         selectFiltro = document.getElementById('select-estudiante-periodo-filtro');
@@ -421,21 +328,17 @@ async loadPeriodosEstudianteCombo() {
         if (periodos.length === 0) {
           selectFiltro.innerHTML = '<option value="">-- Sin Periodos Matriculados --</option>';
         } else {
-          // Asegura mapear las claves 'id' y 'nombre' devueltas por MySQL
           const optionsHtml = '<option value="">-- Todos los Periodos --</option>' +
             periodos.map(p => `<option value="${p.id}">${p.nombre || p.periodo_nombre || p.id}</option>`).join('');
           
           selectFiltro.innerHTML = optionsHtml;
         }
-      } else {
-        console.error('El elemento #select-estudiante-periodo-filtro no existe en la vista HTML.');
       }
     } catch (err) {
       console.error('Error cargando los periodos del estudiante:', err.message);
     }
   },
 
-  // Consulta el historial académico filtrado
   async loadNotasEstudiante() {
     try {
       const user = AuthModule.getUser() || {};
@@ -460,8 +363,87 @@ async loadPeriodosEstudianteCombo() {
     } catch (err) {
       console.error('Error cargando historial de notas:', err.message);
     }
-  }
+  },
 
+  renderVistaEstudiante(list) {
+    const container = document.getElementById('estudiante-periodos-container');
+    if (!container) return;
+
+    if (!Array.isArray(list) || list.length === 0) {
+      container.innerHTML = `<div class="card" style="text-align: center; padding: 30px; color: var(--muted);">No tiene asignaturas registradas para el periodo seleccionado.</div>`;
+      return;
+    }
+
+    const selectFiltro = document.getElementById('select-estudiante-periodo-filtro');
+    const periodoSeleccionadoId = selectFiltro ? selectFiltro.value : '';
+
+    const periodosMap = new Map();
+    list.forEach(item => {
+      const pNombre = item.periodoNombre || 'Periodo Sin Nombre';
+      if (!periodosMap.has(pNombre)) {
+        periodosMap.set(pNombre, []);
+      }
+      periodosMap.get(pNombre).push(item);
+    });
+
+    let html = '';
+
+    if (!periodoSeleccionadoId) {
+      html += `
+        <div style="margin-bottom: 25px;">
+          <h4 style="font-size: 1.1rem; color: var(--navy); margin-bottom: 12px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-layer-group" style="color: var(--primary-color);"></i> Todos los Periodos Académicos
+          </h4>
+        </div>
+      `;
+    }
+
+    periodosMap.forEach((materias, periodoNombre) => {
+      html += `
+        <div style="margin-bottom: 25px;">
+          <h4 style="font-size: 1.05rem; color: var(--navy); margin-bottom: 12px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-calendar-check" style="color: var(--primary-color);"></i> ${periodoNombre}
+          </h4>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px;">
+            ${materias.map(m => `
+              <div class="materia-bubble-card" onclick="window.NotasModule.openDetalleEstudiante('${m.materiaNombre}', '${m.materiaCodigo}', ${m.corte1}, ${m.corte2}, ${m.corte3}, ${m.notaFinal})" 
+                   style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s ease-in-out; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                  <span style="font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase;">${m.materiaCodigo || 'ASIG'}</span>
+                  <span class="badge-role" style="font-size: 0.7rem;">${m.creditos} Créditos</span>
+                </div>
+
+                <h5 style="margin: 0 0 12px 0; font-size: 1rem; color: var(--navy); font-weight: 700; line-height: 1.3;">${m.materiaNombre}</h5>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 8px 12px; border-radius: 8px;">
+                  <span style="font-size: 0.8rem; font-weight: 600; color: var(--muted);">Definitiva:</span>
+                  <span style="font-size: 1.2rem; font-weight: 800; color: ${m.notaFinal >= 3.0 ? '#10b981' : '#ef4444'};">
+                    ${Number(m.notaFinal || 0).toFixed(1)}
+                  </span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  },
+
+  openDetalleEstudiante(nombre, codigo, c1, c2, c3, final) {
+    document.getElementById('modalEstudianteMateriaNombre').innerText = nombre;
+    document.getElementById('modalEstudianteMateriaCodigo').innerText = `Código: ${codigo || 'S/C'}`;
+
+    document.getElementById('detCorte1').innerText = Number(c1 || 0).toFixed(1);
+    document.getElementById('detCorte2').innerText = Number(c2 || 0).toFixed(1);
+    document.getElementById('detCorte3').innerText = Number(c3 || 0).toFixed(1);
+    document.getElementById('detNotaFinal').innerText = Number(final || 0).toFixed(1);
+
+    document.getElementById('modalDetalleNotaEstudiante').style.display = 'flex';
+  }
 };
 
 export default NotasModule;

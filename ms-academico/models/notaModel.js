@@ -6,7 +6,7 @@
 const db = require("../config/database");
 
 const NotaModel = {
-  // Lista materias: ADMIN ve todas; DOCENTE solo las asignadas a su ID
+  // Lista materias: trae p.activo AS periodoActivo para controlar el bloqueo en la UI
   async getMateriasDocente(userRole, userId, periodoId) {
     let query = `
       SELECT DISTINCT
@@ -15,6 +15,7 @@ const NotaModel = {
         m.nombre AS materiaNombre,
         p.id AS periodoId,
         COALESCE(p.nombre, 'Sin Periodo') AS periodoNombre,
+        p.activo AS periodoActivo,
         u_doc.nombre AS profesorNombre,
         COUNT(mat.id) AS totalEstudiantes
       FROM materias m
@@ -40,13 +41,31 @@ const NotaModel = {
       query += " WHERE " + conditions.join(" AND ");
     }
 
-    query += " GROUP BY m.id, p.id, u_doc.id ORDER BY p.id DESC, m.nombre ASC";
+    query += " GROUP BY m.id, p.id, u_doc.id, p.activo ORDER BY p.id DESC, m.nombre ASC";
 
     const [rows] = await db.query(query, params);
     return rows;
   },
 
-  // Obtiene los estudiantes de una materia/periodo con sus respectivas notas
+  // Obtiene si el periodo está activo (1) o inactivo (0)
+  async getEstadoPeriodo(periodoId) {
+    const [rows] = await db.query(
+      `SELECT activo FROM periodos_academicos WHERE id = ?`,
+      [periodoId]
+    );
+    return rows.length > 0 ? rows[0].activo : 0;
+  },
+
+  // Obtiene el ID del periodo a partir de un matricula_id
+  async getPeriodoByMatriculaId(matriculaId) {
+    const [rows] = await db.query(
+      `SELECT periodo_id FROM matriculas WHERE id = ?`,
+      [matriculaId]
+    );
+    return rows.length > 0 ? rows[0].periodo_id : null;
+  },
+
+  // Obtiene los estudiantes de una materia/periodo con sus notas
   async getEstudiantesConNotas(materiaId, periodoId) {
     const query = `
       SELECT 
@@ -87,63 +106,13 @@ const NotaModel = {
     }
   },
 
-  // Obtiene ÚNICAMENTE los periodos donde el estudiante tiene matrículas registradas
+  // Obtiene periodos del estudiante
   async getPeriodosEstudiante(estudianteId) {
     const query = `
       SELECT DISTINCT 
-        p.id, 
-        p.nombre 
-      FROM matriculas mat
-      INNER JOIN periodos_academicos p ON mat.periodo_id = p.id
-      WHERE mat.estudiante_id = ?
-      ORDER BY p.id DESC
-    `;
-    const [rows] = await db.query(query, [estudianteId]);
-    return rows;
-  },
-
-  // Obtiene el historial académico del estudiante con opción de filtrar por periodo
-  async getNotasEstudiante(estudianteId, periodoId = null) {
-    let query = `
-      SELECT 
-        p.id AS periodoId,
-        p.nombre AS periodoNombre,
-        m.id AS materiaId,
-        m.codigo AS materiaCodigo,
-        m.nombre AS materiaNombre,
-        COALESCE(m.creditos, 3) AS creditos,
-        mat.estado AS estadoMatricula,
-        COALESCE(n.corte1, 0) AS corte1,
-        COALESCE(n.corte2, 0) AS corte2,
-        COALESCE(n.corte3, 0) AS corte3,
-        COALESCE(n.nota_final, 0) AS notaFinal
-      FROM matriculas mat
-      INNER JOIN materias m ON mat.materia_id = m.id
-      INNER JOIN periodos_academicos p ON mat.periodo_id = p.id
-      LEFT JOIN notas n ON n.matricula_id = mat.id
-      WHERE mat.estudiante_id = ?
-    `;
-
-    const params = [estudianteId];
-
-    if (periodoId) {
-      query += " AND mat.periodo_id = ?";
-      params.push(periodoId);
-    }
-
-    query += " ORDER BY p.id DESC, m.nombre ASC";
-
-    const [rows] = await db.query(query, params);
-    return rows;
-  },
-
-  // Obtiene únicamente los periodos académicos donde el estudiante registra matrículas
-
-async getPeriodosEstudiante(estudianteId) {
-    const query = `
-      SELECT DISTINCT 
         p.id AS id, 
-        p.nombre AS nombre 
+        p.nombre AS nombre,
+        p.activo AS activo
       FROM matriculas mat
       INNER JOIN periodos_academicos p ON mat.periodo_id = p.id
       WHERE mat.estudiante_id = ?
@@ -153,12 +122,13 @@ async getPeriodosEstudiante(estudianteId) {
     return rows;
   },
 
-  // Obtiene el historial de notas filtrando por periodo si se proporciona
+  // Historial académico del estudiante
   async getNotasEstudiante(estudianteId, periodoId = null) {
     let query = `
       SELECT 
         p.id AS periodoId,
         COALESCE(p.nombre, 'Sin Periodo') AS periodoNombre,
+        p.activo AS periodoActivo,
         m.id AS materiaId,
         m.codigo AS materiaCodigo,
         m.nombre AS materiaNombre,
@@ -187,8 +157,6 @@ async getPeriodosEstudiante(estudianteId) {
     const [rows] = await db.query(query, params);
     return rows;
   }
-
-  
 };
 
 module.exports = NotaModel;
