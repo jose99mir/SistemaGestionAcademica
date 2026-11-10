@@ -8,11 +8,14 @@
       </div>
 
       <div style="display: flex; gap: 12px; align-items: center;">
-        <select id="select-notas-periodo-filtro"  class="input-full select-filter"></select>
+        <select id="select-notas-periodo-filtro" class="input-full select-filter">
           <option value="">-- Todos los Periodos --</option>
         </select>
       </div>
     </div>
+
+    <!-- ALERTA PRINCIPAL DEL MÓDULO (Para mensajes de éxito/error en vista general) -->
+    <div id="main-alert" class="alert-box" style="display: none; margin-bottom: 15px;"></div>
 
     <div class="table-responsive">
       <table class="data-table">
@@ -21,7 +24,7 @@
             <th>Código</th>
             <th>Asignatura</th>
             <th>Periodo</th>
-            <th id="th-profesor-titular">Profesor Titular</th> <!-- Se agrega id aquí -->
+            <th id="th-profesor-titular">Profesor Titular</th>
             <th class="text-center">Alumnos Matriculados</th>
             <th class="text-center" style="width: 120px;">Planilla</th>
           </tr>
@@ -36,7 +39,7 @@
   </div>
 </div>
 
-<!-- VISTA PARA ESTUDIANTE (CON FILTRO DERECHO DE SUS PERIODOS MATRICULADOS) -->
+<!-- VISTA PARA ESTUDIANTE -->
 <div id="notas-estudiante-view" style="display: none;">
   <div class="card" style="margin-bottom: 20px;">
     <div class="header-action">
@@ -45,7 +48,6 @@
         <p class="subtitle" style="margin-top: 4px;">Consulta de calificaciones por periodo y asignatura.</p>
       </div>
 
-      <!-- SELECTOR FILTRO DE PERIODOS DEL ESTUDIANTE ALINEADO A LA DERECHA -->
       <div style="display: flex; gap: 12px; align-items: center;">
         <select id="select-estudiante-periodo-filtro" class="input-full" style="margin: 0; min-width: 200px;">
           <option value="">-- Todos los Periodos --</option>
@@ -64,6 +66,9 @@
   <div class="modal-content" style="max-width: 850px;">
     <h3 id="planillaModalTitle">Planilla de Notas</h3>
     <p id="planillaModalSub" class="subtitle" style="margin-bottom: 15px;"></p>
+
+    <!-- ALERTA INTERNA DEL MODAL (Para errores o validaciones dentro de la planilla) -->
+    <div id="modal-notas-alert" class="alert-box" style="display: none; margin-bottom: 15px;"></div>
 
     <div class="table-responsive" style="max-height: 350px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px;">
       <table class="data-table" style="margin: 0;">
@@ -84,7 +89,7 @@
     </div>
 
     <div class="modal-actions" style="margin-top: 15px;">
-      <button type="button" class="btn-secondary" onclick="window.NotasModule.closePlanillaModal()">Cancelar</button>
+      <button type="button" class="btn-secondary" id="btn-close-planilla-modal">Cancelar</button>
       <button type="button" id="btn-save-planilla-notas" class="btn-primary padding-btn" style="width: auto;">
         <i class="fa-solid fa-floppy-disk"></i> Guardar Calificaciones
       </button>

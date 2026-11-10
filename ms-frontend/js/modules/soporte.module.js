@@ -11,6 +11,8 @@ export const SoporteModule = {
   currentUserRole: null,
 
   init() {
+    window.SoporteModule = this;
+
     if (!this.pagination) {
       this.pagination = new PaginationHelper({
         containerId: 'pqr-pagination',
@@ -67,7 +69,7 @@ export const SoporteModule = {
       this.pagination.setData(response.pqrs || []);
       this.renderTable();
     } catch (err) {
-      this.showAlert('soporte-main-alert', err.message);
+      this.showMainAlert(err.message, true);
     }
   },
 
@@ -79,7 +81,7 @@ export const SoporteModule = {
     const isAdmin = this.currentUserRole === 'ADMIN';
 
     if (!data.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay registros de solicitudes disponibles.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 20px; color: var(--muted);">No hay registros de solicitudes disponibles.</td></tr>';
       this.pagination.render();
       return;
     }
@@ -119,18 +121,18 @@ export const SoporteModule = {
   },
 
   openCreateModal() {
-    this.hideAlert('create-pqr-alert');
+    this.hideAlerts();
     document.getElementById('createPqrForm').reset();
     document.getElementById('createPqrModal').style.display = 'flex';
   },
 
   closeCreateModal() {
-    this.hideAlert('create-pqr-alert');
+    this.hideAlerts();
     document.getElementById('createPqrModal').style.display = 'none';
   },
 
   openViewModal(pqr) {
-    this.hideAlert('view-pqr-alert');
+    this.hideAlerts();
     document.getElementById('viewPqrTitle').innerText = `PQR #${pqr.id} - ${pqr.tipo}`;
     document.getElementById('viewPqrUser').innerText = `${pqr.usuario_nombre} (${pqr.tipo_documento || 'CC'} ${pqr.documento})`;
     document.getElementById('viewPqrAsunto').innerText = pqr.asunto;
@@ -168,13 +170,13 @@ export const SoporteModule = {
   },
 
   closeViewModal() {
-    this.hideAlert('view-pqr-alert');
+    this.hideAlerts();
     document.getElementById('viewPqrModal').style.display = 'none';
   },
 
   async handleCreateSubmit(e) {
     e.preventDefault();
-    this.hideAlert('create-pqr-alert');
+    this.hideAlerts();
 
     const body = {
       tipo: document.getElementById('pqrTipo').value,
@@ -194,16 +196,24 @@ export const SoporteModule = {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Error al guardar la PQR');
 
+      // 1. Cierra el modal de inmediato
       this.closeCreateModal();
+
+      // 2. Muestra la alerta de éxito en la vista principal
+      this.showMainAlert('Solicitud PQR enviada exitosamente');
+
+      // 3. Recarga los datos en segundo plano
       this.loadPqrs();
+
     } catch (err) {
-      this.showAlert('create-pqr-alert', err.message);
+      // Si falla la petición, la alerta de error se muestra DENTRO del modal
+      this.showModalAlert('create-pqr-alert', err.message, true);
     }
   },
 
   async handleAdminSubmit(e) {
     e.preventDefault();
-    this.hideAlert('view-pqr-alert');
+    this.hideAlerts();
 
     const id = document.getElementById('adminPqrId').value;
     const body = {
@@ -223,10 +233,18 @@ export const SoporteModule = {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Error al guardar la respuesta');
 
+      // 1. Cierra el modal de lectura/respuesta de inmediato
       this.closeViewModal();
+
+      // 2. Muestra la alerta de éxito en la vista principal
+      this.showMainAlert('Respuesta enviada correctamente');
+
+      // 3. Recarga los datos en segundo plano
       this.loadPqrs();
+
     } catch (err) {
-      this.showAlert('view-pqr-alert', err.message);
+      // Si falla la petición, la alerta de error se muestra DENTRO del modal de visualización
+      this.showModalAlert('view-pqr-alert', err.message, true);
     }
   },
 
@@ -243,22 +261,41 @@ export const SoporteModule = {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Error al eliminar la PQR');
 
+      this.showMainAlert('Registro PQR eliminado exitosamente');
       this.loadPqrs();
     } catch (err) {
-      this.showAlert('soporte-main-alert', err.message);
+      this.showMainAlert(err.message, true);
     }
   },
 
-  showAlert(elementId, msg) {
-    const el = document.getElementById(elementId);
-    if (!el) return;
-    el.innerText = msg;
-    el.style.display = 'block';
+  // ==========================================
+  // CAJAS DE ALERTA Y MENSAJES (Mismo comportamiento que los demás módulos)
+  // ==========================================
+
+  showMainAlert(msg, isError = false) {
+    const alertBox = document.getElementById('soporte-main-alert');
+    if (!alertBox) return;
+    alertBox.innerText = msg;
+    alertBox.className = `alert-box ${isError ? 'alert-error' : 'alert-success'}`;
+    alertBox.style.display = 'block';
+    setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
   },
 
-  hideAlert(elementId) {
-    const el = document.getElementById(elementId);
-    if (el) el.style.display = 'none';
+  showModalAlert(elementId, msg, isError = false) {
+    const alertBox = document.getElementById(elementId);
+    if (!alertBox) return;
+    alertBox.innerText = msg;
+    alertBox.className = `alert-box ${isError ? 'alert-error' : 'alert-success'}`;
+    alertBox.style.display = 'block';
+  },
+
+  hideAlerts() {
+    const bMain = document.getElementById('soporte-main-alert');
+    const bCreate = document.getElementById('create-pqr-alert');
+    const bView = document.getElementById('view-pqr-alert');
+    if (bMain) bMain.style.display = 'none';
+    if (bCreate) bCreate.style.display = 'none';
+    if (bView) bView.style.display = 'none';
   }
 };
 

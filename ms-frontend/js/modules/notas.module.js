@@ -61,6 +61,7 @@ export const NotasModule = {
   },
 
   closePlanillaModal() {
+    this.hideModalAlert();
     const modal = document.getElementById('modalPlanillaNotas');
     if (modal) modal.style.display = 'none';
   },
@@ -83,7 +84,7 @@ export const NotasModule = {
           periodos.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
       }
     } catch (err) {
-      console.error('Error cargando periodos:', err.message);
+      this.showMainAlert(err.message, true);
     }
   },
 
@@ -111,7 +112,7 @@ export const NotasModule = {
       this.paginationMaterias.setData(list);
       this.renderMateriasTable();
     } catch (err) {
-      console.error('Error cargando asignaturas para calificaciones:', err.message);
+      this.showMainAlert(err.message, true);
     }
   },
 
@@ -131,7 +132,6 @@ export const NotasModule = {
     }
 
     tbody.innerHTML = items.map(item => {
-      // En MySQL el campo 'activo' viene como 1 (activo) o 0 (inactivo)
       const esActivo = item.periodoActivo === 1 || item.periodoActivo === true;
 
       return `
@@ -161,12 +161,12 @@ export const NotasModule = {
 
   async openPlanilla(materiaId, periodoId, materiaNombre, periodoNombre, estadoPeriodo = 1) {
     try {
+      this.hideModalAlert();
       this.selectedMateria = { materiaId, periodoId };
       
       const user = AuthModule.getUser() || {};
       const isAdmin = user.rol === 'ADMIN';
       
-      // Si es ADMIN permite editar siempre; si es DOCENTE, solo si el periodo está ACTIVO (1 / true)
       this.isPeriodoActivo = isAdmin || (estadoPeriodo === 1 || estadoPeriodo === true || estadoPeriodo === 'ACTIVO');
 
       document.getElementById('planillaModalTitle').innerText = materiaNombre;
@@ -188,7 +188,6 @@ export const NotasModule = {
 
       this.renderGridPlanilla();
       
-      // Control visual del botón Guardar
       const btnSave = document.getElementById('btn-save-planilla-notas');
       if (btnSave) {
         btnSave.disabled = !this.isPeriodoActivo;
@@ -198,7 +197,7 @@ export const NotasModule = {
 
       document.getElementById('modalPlanillaNotas').style.display = 'flex';
     } catch (err) {
-      console.error('Error al abrir planilla:', err.message);
+      this.showMainAlert(err.message, true);
     }
   },
 
@@ -252,8 +251,10 @@ export const NotasModule = {
   },
 
   async savePlanillaNotas() {
+    this.hideModalAlert();
+
     if (!this.isPeriodoActivo) {
-      alert('No es posible modificar las calificaciones en un periodo inactivo.');
+      this.showModalAlert('No es posible modificar las calificaciones en un periodo inactivo.', true);
       return;
     }
 
@@ -279,15 +280,25 @@ export const NotasModule = {
         })
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.mensaje || 'Error al guardar las calificaciones');
+        throw new Error(data.mensaje || 'Error al guardar las calificaciones');
       }
 
-      alert('Calificaciones guardadas exitosamente.');
+      // === SECUENCIA IDÉNTICA A USERSMODULE ===
+      // 1. Cierra el modal
       this.closePlanillaModal();
+
+      // 2. Muestra la alerta principal inmediatamente
+      this.showMainAlert('Calificaciones guardadas exitosamente');
+
+      // 3. Recarga los datos de fondo sin bloquear el hilo
+      this.loadMateriasDocente();
+
     } catch (err) {
-      alert(err.message);
+      // Si falla dentro de la petición, la alerta se muestra dentro del modal
+      this.showModalAlert(err.message, true);
     }
   },
 
@@ -335,7 +346,7 @@ export const NotasModule = {
         }
       }
     } catch (err) {
-      console.error('Error cargando los periodos del estudiante:', err.message);
+      this.showMainAlert(err.message, true);
     }
   },
 
@@ -361,7 +372,7 @@ export const NotasModule = {
 
       this.renderVistaEstudiante(list);
     } catch (err) {
-      console.error('Error cargando historial de notas:', err.message);
+      this.showMainAlert(err.message, true);
     }
   },
 
@@ -443,6 +454,32 @@ export const NotasModule = {
     document.getElementById('detNotaFinal').innerText = Number(final || 0).toFixed(1);
 
     document.getElementById('modalDetalleNotaEstudiante').style.display = 'flex';
+  },
+
+  // ==========================================
+  // CAJAS DE ALERTA Y MENSAJES
+  // ==========================================
+
+  showModalAlert(msg, isError = false) {
+    const alertBox = document.getElementById('modal-notas-alert');
+    if (!alertBox) return;
+    alertBox.innerText = msg;
+    alertBox.className = `alert-box ${isError ? 'alert-error' : 'alert-success'}`;
+    alertBox.style.display = 'block';
+  },
+
+  hideModalAlert() {
+    const alertBox = document.getElementById('modal-notas-alert');
+    if (alertBox) alertBox.style.display = 'none';
+  },
+
+  showMainAlert(msg, isError = false) {
+    const alertBox = document.getElementById('main-alert');
+    if (!alertBox) return;
+    alertBox.innerText = msg;
+    alertBox.className = `alert-box ${isError ? 'alert-error' : 'alert-success'}`;
+    alertBox.style.display = 'block';
+    setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
   }
 };
 

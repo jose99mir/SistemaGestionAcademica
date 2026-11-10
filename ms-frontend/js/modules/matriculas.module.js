@@ -1,6 +1,6 @@
 /**
  * @file matriculas.module.js
- * @description Módulo cliente para la gestión interactiva de matrículas.
+ * @description Módulo cliente para la gestión interactiva de matrículas con alertas estandarizadas.
  */
 
 import { AuthModule } from './auth.module.js';
@@ -72,7 +72,7 @@ export const MatriculasModule = {
       if (selectFiltro) selectFiltro.innerHTML = '<option value="">-- Todos los Periodos --</option>' + options;
       if (selectModal) selectModal.innerHTML = options;
     } catch (err) {
-      console.error('Error cargando periodos:', err);
+      this.showAlert(err.message, true);
     }
   },
 
@@ -93,7 +93,7 @@ export const MatriculasModule = {
           materias.map(m => `<option value="${m.id}">${m.codigo || ''} - ${m.nombre || m.materiaNombre}</option>`).join('');
       }
     } catch (err) {
-      console.error('Error cargando materias:', err);
+      this.showModalAlert(err.message, true);
     }
   },
 
@@ -119,7 +119,7 @@ export const MatriculasModule = {
       this.paginationMain.setData(this.currentData);
       this.renderTable();
     } catch (err) {
-      console.error('Error cargando matriculas:', err);
+      this.showAlert(err.message, true);
     }
   },
 
@@ -197,7 +197,6 @@ export const MatriculasModule = {
     this.updateModalPagination();
   },
 
-  // Cambia el valor del ENUM de la matrícula ('ACTIVA', 'FINALIZADA', 'CANCELADA')
   changeEstadoMatricula(id, estado) {
     const estudiante = this.selectedEstudiantes.get(id);
     if (estudiante) {
@@ -255,6 +254,7 @@ export const MatriculasModule = {
   },
 
   async openModal() {
+    this.hideAlerts();
     this.selectedEstudiantes.clear();
     await this.loadMateriasCombo();
     document.getElementById('matriculaForm').reset();
@@ -266,6 +266,7 @@ export const MatriculasModule = {
 
   async editItem(materiaId, periodoId) {
     try {
+      this.hideAlerts();
       this.selectedEstudiantes.clear();
       await this.loadMateriasCombo();
 
@@ -296,29 +297,31 @@ export const MatriculasModule = {
       this.updateModalPagination();
       document.getElementById('matriculaModal').style.display = 'flex';
     } catch (err) {
-      console.error('Error cargando detalle para edición:', err);
+      this.showAlert(err.message, true);
     }
   },
 
   closeModal() {
+    this.hideAlerts();
     document.getElementById('matriculaModal').style.display = 'none';
   },
 
   async handleSubmit(e) {
     e.preventDefault();
+    this.hideAlerts();
 
     const materiaId = document.getElementById('matriculaMateriaSelect').value;
     const periodoId = document.getElementById('matriculaPeriodoSelect').value;
+
+    if (!materiaId || !periodoId) {
+      this.showModalAlert('Debe seleccionar Materia y Periodo', true);
+      return;
+    }
 
     const estudiantes = Array.from(this.selectedEstudiantes.values()).map(e => ({
       id: e.id,
       estadoMatricula: e.estadoMatricula || 'ACTIVA'
     }));
-
-    if (!materiaId || !periodoId) {
-      alert('Debe seleccionar Materia y Periodo');
-      return;
-    }
 
     try {
       const res = await fetch('/api/academico/matriculas/guardar', {
@@ -330,14 +333,50 @@ export const MatriculasModule = {
         body: JSON.stringify({ materiaId, periodoId, estudiantesIds: estudiantes })
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.mensaje || 'Error al guardar');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.mensaje || 'Error al guardar la matrícula');
 
+      // 1. Cierra el modal de inmediato
       this.closeModal();
-      await this.loadData();
+
+      // 2. Notifica en el contenedor principal (vista general)
+      this.showAlert('Matrículas actualizadas exitosamente');
+
+      // 3. Recarga los datos en segundo plano
+      this.loadData();
+
     } catch (err) {
-      alert(err.message);
+      // Muestra el error dentro del modal sin cerrarlo
+      this.showModalAlert(err.message, true);
     }
+  },
+
+  // ==========================================
+  // CAJAS DE ALERTA Y MENSAJES (Manejo unificado)
+  // ==========================================
+
+  showAlert(msg, isError = false) {
+    const box = document.getElementById('main-matricula-alert');
+    if (!box) return;
+    box.innerText = msg;
+    box.className = `alert-box ${isError ? 'alert-error' : 'alert-success'}`;
+    box.style.display = 'block';
+    setTimeout(() => { if (box) box.style.display = 'none'; }, 4000);
+  },
+
+  showModalAlert(msg, isError = false) {
+    const box = document.getElementById('matricula-modal-alert');
+    if (!box) return;
+    box.innerText = msg;
+    box.className = `alert-box ${isError ? 'alert-error' : 'alert-success'}`;
+    box.style.display = 'block';
+  },
+
+  hideAlerts() {
+    const b1 = document.getElementById('main-matricula-alert');
+    const b2 = document.getElementById('matricula-modal-alert');
+    if (b1) b1.style.display = 'none';
+    if (b2) b2.style.display = 'none';
   }
 };
 

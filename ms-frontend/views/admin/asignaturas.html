@@ -9,7 +9,7 @@
     <!-- Contenedor Alineado de Filtros y Botón -->
     <div class="header-controls">
       <!-- Combo de Periodo (Visible para Estudiantes según JS) -->
-      <div id="filter-periodo-container" class="filter-periodo-wrapper">
+      <div id="filter-periodo-container" class="filter-periodo-wrapper" style="display: none;">
         <select id="select-periodo-filtro" class="input-full select-filter">
           <option value="">-- Todos los Periodos --</option>
         </select>
@@ -30,7 +30,8 @@
     </div>
   </div>
 
-  <div id="main-asignatura-alert" class="alert-box" style="display: none;"></div>
+  <!-- ALERTA PRINCIPAL DEL MÓDULO DE ASIGNATURAS -->
+  <div id="main-asignatura-alert" class="alert-box" style="display: none; margin-bottom: 15px;"></div>
 
   <!-- Contenedor Responsivo para la Tabla -->
   <div class="table-responsive">
@@ -53,7 +54,8 @@
   <div class="modal-content">
     <h3 id="asignaturaModalTitle">Nueva Asignatura</h3>
     
-    <div id="asignatura-modal-alert" class="alert-box alert-error" style="display: none;"></div>
+    <!-- ALERTA DENTRO DEL MODAL -->
+    <div id="asignatura-modal-alert" class="alert-box" style="display: none; margin-bottom: 15px;"></div>
 
     <form id="asignaturaForm">
       <input type="hidden" id="asignaturaId">
