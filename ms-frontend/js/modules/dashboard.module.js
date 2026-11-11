@@ -11,7 +11,8 @@ import { ProgramasModule } from './programas.module.js';
 import { PeriodosModule } from './periodos.module.js';
 import { AsignaturasModule } from './asignaturas.module.js';
 import { MatriculasModule } from './matriculas.module.js';
- import { NotasModule } from './notas.module.js';
+import { NotasModule } from './notas.module.js';
+import { HomeDashboardModule } from './home-dashboard.module.js';
 
 export const DashboardModule = {
   configMenus: {
@@ -95,14 +96,10 @@ export const DashboardModule = {
       case 'dashboard':
         title.innerText = `Bienvenido/a, ${user.nombre || 'Usuario'}`;
         sub.innerText = `Panel de Control — Rol: ${user.rol}`;
-        container.innerHTML = `
-          <div class="alert green">
-            <div class="icon-circle"><i class="fa-solid fa-circle-check"></i></div>
-            <div>
-              <h3>Sesión Activa</h3>
-              <p>Has ingresado correctamente con el rol de <strong>${user.rol}</strong>.</p>
-            </div>
-          </div>`;
+        // Renderizado del Dashboard Dinámico según el Rol
+        if (HomeDashboardModule && typeof HomeDashboardModule.init === 'function') {
+          await HomeDashboardModule.init(container, user);
+        }
         break;
 
       case 'usuarios':
@@ -133,45 +130,49 @@ export const DashboardModule = {
         break;
 
       case 'materias':
+      case 'cursos':
         title.innerText = 'Gestión de Asignaturas';
         sub.innerText = 'Módulo para gestión de asignaturas';
         await this.renderModuloHtml(container, '../admin/asignaturas.html', 'asignaturas');
         requestAnimationFrame(() => {
-          if (AsignaturasModule && typeof AsignaturasModule.init === 'function') { AsignaturasModule.init();}
-      });
-      break;
+          if (AsignaturasModule && typeof AsignaturasModule.init === 'function') { 
+            AsignaturasModule.init();
+          }
+        });
+        break;
 
       case 'matriculas':
-       title.innerText = 'Gestión Global de Matrículas';
-       sub.innerText = 'Asignación de estudiantes a materias y periodos académicos';
-       await this.renderModuloHtml(container, '../admin/matriculas.html', 'matriculas');
-        if (MatriculasModule && typeof MatriculasModule.init === 'function') { await MatriculasModule.init(); }
-      break;
+        title.innerText = 'Gestión Global de Matrículas';
+        sub.innerText = 'Asignación de estudiantes a materias y periodos académicos';
+        await this.renderModuloHtml(container, '../admin/matriculas.html', 'matriculas');
+        if (MatriculasModule && typeof MatriculasModule.init === 'function') { 
+          await MatriculasModule.init(); 
+        }
+        break;
 
       case 'notas':
       case 'calificaciones':
-      const userRole = user ? user.rol : '';
-    
-      if (userRole === 'ESTUDIANTE') {
-        title.innerText = 'Mi Historial Académico';
-        sub.innerText = 'Consulta de calificaciones por periodo y asignatura';
-      } else if (userRole === 'DOCENTE' || userRole === 'PROFESOR') {
-        title.innerText = 'Registro de Calificaciones';
-        sub.innerText = 'Planilla de notas para asignaturas a cargo';
-      } else {
-        title.innerText = 'Gestión Global de Calificaciones';
-        sub.innerText = 'Consulta y edición de notas de todas las asignaturas';
-      }
+        const userRole = user ? user.rol : '';
+        if (userRole === 'ESTUDIANTE') {
+          title.innerText = 'Mi Historial Académico';
+          sub.innerText = 'Consulta de calificaciones por periodo y asignatura';
+        } else if (userRole === 'DOCENTE' || userRole === 'PROFESOR') {
+          title.innerText = 'Registro de Calificaciones';
+          sub.innerText = 'Planilla de notas para asignaturas a cargo';
+        } else {
+          title.innerText = 'Gestión Global de Calificaciones';
+          sub.innerText = 'Consulta y edición de notas de todas las asignaturas';
+        }
 
-      await this.renderModuloHtml(container, '../admin/notas.html', 'notas');
-    
-      if (NotasModule && typeof NotasModule.init === 'function') {await NotasModule.init();}
-      break;
-      
+        await this.renderModuloHtml(container, '../admin/notas.html', 'notas');
+        if (NotasModule && typeof NotasModule.init === 'function') { 
+          await NotasModule.init(); 
+        }
+        break;
 
       case 'pqrs':
         title.innerText = 'Gestión de Tickets y PQRS';
-        sub.innerText = 'Módulo para gestión Tickets y PQRS';
+        sub.innerText = 'Módulo para gestión de Tickets y PQRS';
         await this.renderModuloHtml(container, '../soporte/soporte.html', 'soporte');
         requestAnimationFrame(() => {
           if (SoporteModule && typeof SoporteModule.init === 'function') {
@@ -191,7 +192,6 @@ export const DashboardModule = {
       const html = await response.text();
       container.innerHTML = html;
 
-      // Re-ejecutar scripts internos
       const scripts = container.querySelectorAll('script');
       scripts.forEach(oldScript => {
         const newScript = document.createElement('script');
@@ -201,165 +201,6 @@ export const DashboardModule = {
       });
     } catch (err) {
       container.innerHTML = `<div class="card"><p style="color:var(--red, #ef4444)">Error al cargar ${nombreModulo}: ${err.message}</p></div>`;
-    }
-  },
-
-  async renderModuloPqrs(container, user) {
-    container.innerHTML = '<p>Cargando registros...</p>';
-    try {
-      const tickets = await SoporteModule.getPqrsUsuario(user.id);
-      
-      let html = `
-        <div class="card" style="margin-bottom: 20px;">
-          <h3>Radicar Nueva Solicitud</h3>
-          <form id="formPqrs">
-            <input type="hidden" id="pqrs-id">
-            <div class="field">
-              <label>Tipo</label>
-              <select id="pqrs-tipo" required>
-                <option value="Petición">Petición</option>
-                <option value="Queja">Queja</option>
-                <option value="Reclamo">Reclamo</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Asunto</label>
-              <input type="text" id="pqrs-asunto" required placeholder="Escribe el asunto">
-            </div>
-            <div class="field">
-              <label>Descripción</label>
-              <input type="text" id="pqrs-desc" required placeholder="Detalle de la solicitud">
-            </div>
-            <button type="submit" class="btn-primary" style="width: auto; padding: 10px 20px;">Guardar Ticket</button>
-          </form>
-        </div>
-
-        <div class="card">
-          <h3>Listado de Tickets</h3>
-          <table>
-            <thead>
-              <tr><th>ID</th><th>Tipo</th><th>Asunto</th><th>Descripción</th><th>Acciones</th></tr>
-            </thead>
-            <tbody>`;
-
-      if (!tickets || tickets.length === 0) {
-        html += '<tr><td colspan="5">No hay tickets registrados.</td></tr>';
-      } else {
-        tickets.forEach(t => {
-          html += `
-            <tr>
-              <td>${t.id}</td>
-              <td>${t.tipo}</td>
-              <td><strong>${t.asunto}</strong></td>
-              <td>${t.descripcion}</td>
-              <td>
-                <button class="btn-edit btn-navy" data-id="${t.id}" data-tipo="${t.tipo}" data-asunto="${t.asunto}" data-desc="${t.descripcion}">Editar</button>
-                <button class="btn-del btn-navy" data-id="${t.id}" style="background:var(--red, #ef4444);">Eliminar</button>
-              </td>
-            </tr>`;
-        });
-      }
-
-      html += '</tbody></table></div>';
-      container.innerHTML = html;
-
-      document.getElementById('formPqrs').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('pqrs-id').value;
-        const tipo = document.getElementById('pqrs-tipo').value;
-        const asunto = document.getElementById('pqrs-asunto').value;
-        const descripcion = document.getElementById('pqrs-desc').value;
-
-        if (id) {
-          await SoporteModule.actualizarPqrs(id, { tipo, asunto, descripcion });
-        } else {
-          await SoporteModule.enviarPqrs(tipo, asunto, descripcion, user.id);
-        }
-        this.renderModuloPqrs(container, user);
-      });
-
-      document.querySelectorAll('.btn-edit').forEach(b => {
-        b.addEventListener('click', (e) => {
-          const ds = e.currentTarget.dataset;
-          document.getElementById('pqrs-id').value = ds.id;
-          document.getElementById('pqrs-tipo').value = ds.tipo;
-          document.getElementById('pqrs-asunto').value = ds.asunto;
-          document.getElementById('pqrs-desc').value = ds.desc;
-        });
-      });
-
-      document.querySelectorAll('.btn-del').forEach(b => {
-        b.addEventListener('click', async (e) => {
-          const id = e.currentTarget.dataset.id;
-          if (confirm(`¿Desea eliminar el ticket #${id}?`)) {
-            await SoporteModule.eliminarPqrs(id);
-            this.renderModuloPqrs(container, user);
-          }
-        });
-      });
-
-    } catch (err) {
-      container.innerHTML = '<div class="card"><p style="color:var(--red, #ef4444)">Error al consultar las PQRS.</p></div>';
-    }
-  },
-
-  // --- 1. ABRIR MODAL PARA CREAR ---
-  async openModal() {
-    this.hideAlerts();
-    document.getElementById('asignaturaForm')?.reset();
-    document.getElementById('asignaturaId').value = '';
-
-    // ESPERA ASÍNCRONA: Llena los comboboxes de Programas y Profesores ANTES de mostrar el modal
-    await this.loadCombosOptions();
-
-    const modalTitle = document.getElementById('asignaturaModalTitle');
-    if (modalTitle) modalTitle.innerText = 'Nueva Asignatura';
-
-    const modal = document.getElementById('asignaturaModal');
-    if (modal) modal.style.display = 'flex';
-  },
-
-  // --- 2. ABRIR MODAL PARA EDITAR ---
-  async editItem(id) {
-    try {
-      this.hideAlerts();
-
-      // ESPERA ASÍNCRONA: Carga las opciones para que los <select> ya tengan los <option> listos al asignar el valor
-      await this.loadCombosOptions();
-
-      const res = await fetch(`/api/academico/asignaturas/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${AuthModule.getToken()}`,
-          'x-user-role': AuthModule.getUser()?.rol
-        }
-      });
-
-      if (!res.ok) throw new Error('No se pudieron obtener los detalles de la asignatura');
-      const item = await res.json();
-
-      document.getElementById('asignaturaId').value = item.id;
-      document.getElementById('asignaturaCode').value = item.codigo || '';
-      document.getElementById('asignaturaName').value = item.nombre || item.materiaNombre || '';
-      document.getElementById('asignaturaCreditos').value = item.creditos || 3;
-
-      // Asigna las opciones seleccionadas
-      if (document.getElementById('asignaturaPrograma')) {
-        document.getElementById('asignaturaPrograma').value = item.programa_id || item.programaId || '';
-      }
-
-      if (document.getElementById('asignaturaDocente')) {
-        document.getElementById('asignaturaDocente').value = item.docente_id || item.docenteId || '';
-      }
-
-      const modalTitle = document.getElementById('asignaturaModalTitle');
-      if (modalTitle) modalTitle.innerText = 'Editar Asignatura';
-
-      const modal = document.getElementById('asignaturaModal');
-      if (modal) modal.style.display = 'flex';
-
-    } catch (err) {
-      console.error('Error al editar asignatura:', err);
-      this.showAlert(err.message, true);
     }
   }
 };
